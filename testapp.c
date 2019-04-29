@@ -40,6 +40,9 @@ int main(int argc, char *argv[])
    result = adiak_executable();
    if (result != 0) printf("return: %d\n\n", result);
 
+   result = adiak_libraries();
+   if (result != 0) printf("return: %d\n\n", result);
+
    result = adiak_cmdline();
    if (result != 0) printf("return: %d\n\n", result);
 
@@ -49,13 +52,16 @@ int main(int argc, char *argv[])
    result = adiak_clustername();
    if (result != 0) printf("return: %d\n\n", result);
 
-   result = adiak_runtime();
+   result = adiak_walltime();
    if (result != 0) printf("return: %d\n\n", result);
 
-   result = adiak_iotime();
+   result = adiak_cputime();
    if (result != 0) printf("return: %d\n\n", result);
 
-   result = adiak_mpi_ranks();
+   result = adiak_systime();
+   if (result != 0) printf("return: %d\n\n", result);   
+
+   result = adiak_job_size();
    if (result != 0) printf("return: %d\n\n", result);
 
   result = adiak_hostlist();
@@ -66,7 +72,8 @@ int main(int argc, char *argv[])
 
    gettimeofday(&end, NULL);
    result = adiak_value("computetime", adiak_performance, "-%t-", &start, &end);
-   
+
+   adiak_fini();
    MPI_Finalize();
    return 0;
 }

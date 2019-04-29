@@ -5,12 +5,17 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <time.h>
 #include <stdarg.h>
 #include <string.h>
 #include <pwd.h>
+#include <limits.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/times.h>
+#include <sys/time.h>
+#include <link.h>
 
 typedef struct {
    adiak_nameval_cb_t nameval_cb;
@@ -77,8 +82,8 @@ static adiak_valentries_t adiak_valentries[] = {
    { NULL, NULL, 0, 0, 0, base_none }
 };
 
-const adiak_datatype_t adiak_v1_types = {adiak_rational, adiak_set, adiak_path, adiak_performance};
-static const adiak_datatype_t adiak_types_by_version[] = { adiak_v1_types };
+static const adiak_datatype_t adiak_v1_types = {adiak_rational, adiak_set, adiak_path, adiak_performance};
+static adiak_datatype_t adiak_types_by_version[1];
 
 #if defined(MPI_VERSION)
 static MPI_Comm adiak_communicator;
@@ -88,21 +93,20 @@ static int use_mpi;
 static void adiak_common_init();
 static int format_match(const char *users, const char *reference);
 static adiak_valentries_t *get_valentry_from_char(const char *c);
-static int get_size_from_type(adiak_datatype_t valtype);
-static int adiak_nameval(const char *name, void *buffer, size_t buffer_size, size_t elem_size, adiak_datatype_t valtype);
+static int adiak_nameval(const char *name, const void *buffer, size_t buffer_size, size_t elem_size, adiak_datatype_t valtype);
 static int adiak_request(adiak_request_t req, int request_version);
 static struct passwd *get_passwd();
 static void adiak_register(int adiak_version, adiak_category_t category,
                            adiak_nameval_cb_t nv, adiak_request_cb_t rq,
                            int report_on_all_ranks, void *opaque_val);
+static int get_library_name(struct dl_phdr_info *info, size_t size, void *data);
+static int count_libraries(struct dl_phdr_info *info, size_t size, void *cnt);
 
 #if defined(MPI_VERSION)
 static int hostname_color(char *str, int index);
 static int get_unique_host(char *name, int global_rank);
 static int gethostlist(char **hostlist, int *num_hosts, int *max_hostlen);
 #endif
-
-static const adiak_datatype_t adiak_unset_datatype = { adiak_numerical_unset, adiak_grouping_unset, adiak_type_unset, adiak_category_unset };
 
 int adiak_value(const char *name, adiak_category_t category, const char *typestr, ...)
 {
@@ -226,7 +230,7 @@ int adiak_value(const char *name, adiak_category_t category, const char *typestr
    if (!parsed_type)
       goto error;
 
-   result = adiak_nameval(name, (void *) buffer, buffer_size, elem_size, valtype);
+   result = adiak_nameval(name, (void *) buffer, elem_size, set_size * array_size, valtype);
    if (result == -1)
       goto error;
 
@@ -239,12 +243,19 @@ int adiak_value(const char *name, adiak_category_t category, const char *typestr
    return err_ret;
 }
 
-int adiak_rawval(const char *name, void *val, size_t val_size, adiak_datatype_t valtype)
+int adiak_rawval(const char *name, const void *elems, size_t elem_size, size_t num_elems, adiak_datatype_t valtype)
 {
-   int elem_size;
+   return adiak_nameval(name, elems, elem_size, num_elems, valtype);
+}
 
-   elem_size = get_size_from_type(valtype);
-   return adiak_nameval(name, (void *) val, val_size, elem_size, valtype);
+adiak_numerical_t adiak_numerical_from_type(adiak_type_t t)
+{
+   adiak_valentries_t *i;
+   for (i = adiak_valentries; i->typename != NULL; i++) {
+      if (i->dtype == t)
+         return i->numerical;
+   }
+   return adiak_numerical_unset;
 }
 
 void adiak_register_cb(int adiak_version, adiak_category_t category,
@@ -288,16 +299,27 @@ int adiak_uid()
    return 0;
 }
 
-int adiak_launchdate()
+static struct timeval starttime()
 {
    struct stat buf;
-   unsigned long modtime;
+   struct timeval tv;
    int result;
+   tv.tv_sec = tv.tv_usec = 0;
    result = stat("/proc/self", &buf);
    if (result == -1)
+      return tv;
+
+   tv.tv_sec = buf.st_mtime;
+   tv.tv_usec = buf.st_mtim.tv_nsec / 1000;
+   return tv;
+}
+
+int adiak_launchdate()
+{
+   struct timeval stime = starttime();
+   if (stime.tv_sec == 0 && stime.tv_usec == 0)
       return -1;
-   modtime = (unsigned long) buf.st_mtime;
-   adiak_value("date", adiak_general, "%D", modtime);
+   adiak_value("date", adiak_general, "%D", stime.tv_sec);
    return 0;
 }
 
@@ -318,6 +340,40 @@ int adiak_executable()
       filepart++;
    adiak_value("executable", adiak_general, "%s", filepart);
    return 0;
+}
+
+int adiak_executablepath()
+{
+   char path[4097];
+   char *result;
+
+   memset(path, 0, sizeof(path));
+   result = realpath("/proc/self/exe", path);
+   if (!result)
+      return -1;
+   
+   adiak_value("executablepath", adiak_general, "%p", strdup(path));
+   return 0;
+}
+
+typedef struct {
+   char **names;
+   int cur;
+} lib_info_t;
+
+int adiak_libraries()
+{
+   int num_libraries = 0, result;
+   lib_info_t linfo;
+
+   dl_iterate_phdr(count_libraries, &num_libraries);
+   linfo.names = (char **) malloc(sizeof(char*) * num_libraries);
+   linfo.cur = 0;
+   dl_iterate_phdr(get_library_name, &linfo);
+
+   result = adiak_value("libraries", adiak_general, "[%p]", linfo.cur, linfo.names);
+   free(linfo.names);
+   return result;
 }
 
 int adiak_cmdline()
@@ -411,24 +467,36 @@ int adiak_clustername()
    return adiak_value("cluster", adiak_general, "%s", clustername);
 }
 
-int adiak_runtime()
+static int measure_adiak_walltime;
+static int measure_adiak_systime;
+static int measure_adiak_cputime;
+
+int adiak_walltime()
 {
-   return adiak_request(walltime, 1);
+   measure_adiak_walltime = 1;
+   return 0;
 }
 
-int adiak_iotime()
+int adiak_systime()
 {
-   return adiak_request(iotime, 1);
+   measure_adiak_systime = 1;
+   return 0;   
 }
 
-int adiak_mpi_ranks()
+int adiak_cputime()
+{
+   measure_adiak_cputime = 1;
+   return 0;   
+}
+
+int adiak_job_size()
 {
 #if defined(MPI_VERSION)
    int size;
    if (!use_mpi)
       return -1;
    MPI_Comm_size(adiak_communicator, &size);
-   return adiak_value("mpiranks", adiak_general, "%d", size);
+   return adiak_value("jobsize", adiak_general, "%d", size);
 #else
    return -1;
 #endif
@@ -504,6 +572,92 @@ void adiak_init(void *unused)
 }
 #endif
 
+static int count_libraries(struct dl_phdr_info *info, size_t size, void *cnt) {
+   int *count = (int *) cnt;
+   if (info->dlpi_name && *info->dlpi_name)
+      (*count)++;
+   return 0;
+}
+
+static int get_library_name(struct dl_phdr_info *info, size_t size, void *data) {
+   lib_info_t *linfo = (lib_info_t *) data;
+   if (!info->dlpi_name || !*info->dlpi_name)
+      return 0;
+   linfo->names[linfo->cur++] = strdup(info->dlpi_name);
+   return 0;
+}
+
+static int measure_times(int systime, int cputime)
+{
+   clock_t tics;
+   struct tms buf;
+   const char *name;
+   long tics_per_sec;
+
+   tics = times(&buf);
+   if (tics == (clock_t) -1)
+      return -1;
+      
+
+   if (systime) {
+      tics = buf.tms_stime;
+      name = "systime";
+   }
+   else if (cputime) {
+      tics = buf.tms_utime;
+      name = "cputime";
+   }
+   else
+      return -1;
+
+   errno = 0;
+   tics_per_sec = sysconf(_SC_CLK_TCK);
+   if (errno) {
+      tics_per_sec = 100;
+   }
+      
+   struct timeval *v = (struct timeval *) malloc(sizeof(struct timeval));
+   v->tv_sec = tics / tics_per_sec;
+   v->tv_usec = (tics % tics_per_sec) * (1000000 / tics_per_sec);
+   return adiak_value(name, adiak_performance, "%t", v);
+}
+
+static int measure_walltime()
+{
+   struct timeval stime;
+   struct timeval etime, *diff;
+   int result;
+
+   stime = starttime();
+   if (stime.tv_sec == 0 && stime.tv_usec == 0)
+      return -1;
+
+   result = gettimeofday(&etime, NULL);
+   if (result == -1)
+      return -1;
+
+   diff = malloc(sizeof(struct timeval));
+   diff->tv_sec = etime.tv_sec - stime.tv_sec;
+   if (etime.tv_usec < stime.tv_usec) {
+      diff->tv_usec = 1000000 + etime.tv_usec - stime.tv_usec;
+      diff->tv_sec--;
+   }
+   else
+      diff->tv_usec = etime.tv_usec - stime.tv_usec;
+   
+   return adiak_value("walltime", adiak_performance, "%t", diff);   
+}
+
+void adiak_fini()
+{
+   if (measure_adiak_cputime)
+      measure_times(0, 1);
+   if (measure_adiak_systime)
+      measure_times(1, 0);
+   if (measure_adiak_walltime)
+      measure_walltime();
+}
+
 static void adiak_common_init()
 {
    char *errstr;
@@ -521,6 +675,8 @@ static void adiak_common_init()
    if (ADIAK_VERSION < global_adiak->minimum_version)
       global_adiak->minimum_version = ADIAK_VERSION;
    tool_list = global_adiak->tool_list;
+
+   adiak_types_by_version[0] = adiak_v1_types;
 }
 
 static int format_match(const char *users, const char *reference)
@@ -542,17 +698,7 @@ static adiak_valentries_t *get_valentry_from_char(const char *c)
    return NULL;
 }
 
-static int get_size_from_type(adiak_datatype_t valtype)
-{
-   adiak_valentries_t *i;
-   for (i = adiak_valentries; i->typename != NULL; i++) {
-      if (i->dtype == valtype.dtype)
-         return i->elem_size;
-   }
-   return -1;
-}
-
-static int adiak_nameval(const char *name, void *buffer, size_t buffer_size, size_t elem_size, adiak_datatype_t valtype)
+static int adiak_nameval(const char *name, const void *buffer, size_t elem_size, size_t num_elems, adiak_datatype_t valtype)
 {
    adiak_tool_t *tool;
    int valtype_version = -1, i;
@@ -577,7 +723,7 @@ static int adiak_nameval(const char *name, void *buffer, size_t buffer_size, siz
       if (tool->category != adiak_category_all && tool->category != valtype.category)
          continue;
       if (tool->name_val_cb)
-         tool->name_val_cb(name, buffer, elem_size, buffer_size/elem_size, valtype, tool->opaque_val);
+         tool->name_val_cb(name, (void *) buffer, elem_size, num_elems, valtype, tool->opaque_val);
    }
    return 0;
 }
@@ -773,4 +919,3 @@ static int gethostlist(char **hostlist, int *num_hosts, int *max_hostlen)
    return 0;
 }
 #endif
-

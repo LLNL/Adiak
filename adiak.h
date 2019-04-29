@@ -5,6 +5,10 @@
 #include <mpi.h>
 #endif
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+   
 #include <unistd.h>
 
 #define ADIAK_VERSION 1
@@ -53,6 +57,9 @@ typedef struct {
    adiak_category_t category;
 } adiak_datatype_t;
 
+static const adiak_datatype_t adiak_unset_datatype = { adiak_numerical_unset, adiak_grouping_unset, adiak_type_unset, adiak_category_unset };
+
+
 /**
  * Initializes the adiak interface.  When run in an MPI job, adiak takes a communicator used for reducing
  * the data passed to it.  This should be called after MPI_Init.
@@ -62,6 +69,7 @@ void adiak_init(MPI_Comm *communicator);
 #else
 void adiak_init(void *unused);
 #endif
+void adiak_fini();
 
 /**
  * adiak_value registers a name/value pair.  The printf-style typestr describes the type of the 
@@ -75,24 +83,29 @@ void adiak_init(void *unused);
  *   adiak_value("maxheat", "%f", mheat);
  **/
 int adiak_value(const char *name, adiak_category_t category, const char *typestr, ...);
-
-int adiak_rawval(const char *name, void *val, size_t val_size, adiak_datatype_t valtype);
+int adiak_rawval(const char *name, const void *elems, size_t elem_size, size_t num_elems, adiak_datatype_t valtype);
 
 int adiak_user();  /* Makes a 'user' name/val with the real name of who's running the job */
 int adiak_uid(); /* Makes a 'uid' name/val with the uid of who's running the job */
 int adiak_launchdate(); /* Makes a 'date' name/val with the date of when this job started */
 int adiak_executable(); /* Makes an 'executable' name/val with the executable file for this job */ 
+int adiak_executablepath(); /* Makes an 'executablepath' name/value with the full executable file path. */
+int adiak_libraries(); /* Makes a 'libraries' name/value with the set of shared library paths. */
 int adiak_cmdline(); /* Makes a 'cmdline' name/val string set with the command line parameters */
 int adiak_hostname(); /* Makes a 'hostname' name/val with the hostname */
 int adiak_clustername(); /* Makes a 'cluster' name/val with the cluster name (hostname with numbers stripped) */
-int adiak_runtime(); /* Makes a 'runtime' name/val with the walltime how long this job ran */
-int adiak_iotime(); /* Makes a 'iotime' name/val with the timeval of how much time was spent in IO */
+int adiak_walltime(); /* Makes a 'walltime' name/val with the walltime how long this job ran */
+int adiak_systime(); /* Makes a 'systime' name/val with the timeval of how much time was spent in IO */
+int adiak_cputime(); /* Makes a 'cputime' name/val with the timeval of how much time was spent on the CPU */
 
-
-#if defined(MPI_VERSION)
-int adiak_mpi_ranks(); /* Makes a 'mpiranks' name/val with the number of ranks in an MPI job */
+int adiak_job_size(); /* Makes a 'jobsize' name/val with the number of ranks in an MPI job */
 int adiak_hostlist(); /* Makes a 'hostlist' name/val with the set of hostnames in this MPI job */
 int adiak_mpitime(); /* Makes an 'mpitime' name/val with the timeval of how much time was spent in MPI */
+
+adiak_numerical_t adiak_numerical_from_type(adiak_type_t t);
+
 #endif
-                     
+
+#if defined(__cplusplus)
+}
 #endif
