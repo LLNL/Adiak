@@ -5,7 +5,9 @@
 #include <list>
 #include <array>
 #include <deque>
+
 #include <iostream>
+#include <cassert>
 
 #include <cstring>
 #include <cstdlib>
@@ -43,7 +45,6 @@ namespace adiak
       template<> struct element_type<adiak::version>  { static const adiak_type_t dtype = adiak_version; };
       template<> struct element_type<adiak::path>     { static const adiak_type_t dtype = adiak_path; };
       template<> struct element_type<adiak::catstring>{ static const adiak_type_t dtype = adiak_catstring; };
-      
       template<typename U> struct element_type<std::set<U> >
       { static const adiak_type_t dtype = adiak_set; };
       template<typename U> struct element_type<std::unordered_set<U> >
@@ -70,10 +71,7 @@ namespace adiak
       template<typename U, std::size_t N> struct is_container<std::array<U, N> > { static const bool value = true; };
       template<typename U> struct is_container<std::deque<U> >        { static const bool value = true; };
 
-      template<typename T> struct is_tuple_or_container { static const bool value = is_container<T>::value; };
-      template<typename... U> struct is_tuple_or_container<std::tuple<U...> > { static const bool value = true; };
-         
-      
+
       template<typename T>
       class has_adiak_underlying_type {
          template<typename C> static char test(typename C::adiak_underlying_type);
@@ -82,126 +80,163 @@ namespace adiak
          enum { value = sizeof(test<T>(0)) == sizeof(char) };
       };      
 
-      template <typename T> typename std::enable_if<!is_tuple_or_container<T>::value, adiak_datatype_t *>::type make_type(const T &c);
-      template <> adiak_datatype_t *make_type(const std::string &s);
-      template <typename... Ts> adiak_datatype_t *make_type(const std::tuple<Ts...> &c);
-      template <typename T> typename std::enable_if<is_container<T>::value, adiak_datatype_t *>::type make_type(const T &c);
+      template <typename T>
+      struct make_type
+      {
+         static adiak_datatype_t *create() {            
+            adiak_type_t dtype = element_type<T>::dtype;
+            adiak_datatype_t *datatype = adiak_get_basetype(dtype);
+            return datatype;      
+         }
+      };
+
+      template <typename T>
+      struct create_container_type
+      {
+         static adiak_datatype_t *create() {
+            adiak_datatype_t *datatype = (adiak_datatype_t *) malloc(sizeof(adiak_datatype_t));
+            memset(datatype, 0, sizeof(*datatype));
+            datatype->dtype = element_type<T>::dtype;
+            datatype->numerical = adiak_numerical_from_type(datatype->dtype);
+            datatype->num_elements = 0;
+            datatype->num_subtypes = 1;
+            datatype->subtype = (adiak_datatype_t **) malloc(sizeof(adiak_datatype_t *));
+            datatype->subtype[0] = make_type<typename T::value_type>::create();
+            if (datatype->subtype[0] == NULL) {
+               free(datatype);
+               datatype = NULL;
+            }
+            return datatype;
+         }               
+      };
       
-      template <typename T>
-      typename std::enable_if<!is_tuple_or_container<T>::value, adiak_datatype_t *>::type
-      make_type(const T &c) {
-         adiak_type_t dtype = element_type<T>::dtype;
-         adiak_datatype_t *datatype = adiak_get_basetype(dtype);
-         return datatype;
-      }
-
+      template<typename T> struct make_type<std::set<T> > {
+         static adiak_datatype_t *create() {
+            return create_container_type<std::set<T> >::create();
+         }
+      };
+      template<typename T> struct make_type<std::unordered_set<T> > {
+         static adiak_datatype_t *create() {
+            return create_container_type<std::unordered_set<T> >::create();
+         }
+      };
+      template<typename T> struct make_type<std::multiset<T> > {
+         static adiak_datatype_t *create() {
+            return create_container_type<std::multiset<T> >::create();
+         }
+      };
+      template<typename T> struct make_type<std::vector<T> > {
+         static adiak_datatype_t *create() {
+            return create_container_type<std::vector<T> >::create();
+         }
+      };
+      template<typename T> struct make_type<std::list<T> > {
+         static adiak_datatype_t *create() {
+            return create_container_type<std::list<T> >::create();
+         }
+      };
+      template<typename T, std::size_t N> struct make_type<std::array<T, N> > {
+         static adiak_datatype_t *create() {
+            return create_container_type<std::array<T, N> >::create();
+         }
+      };
+      template<typename T> struct make_type<std::deque<T> > {
+         static adiak_datatype_t *create() {
+            return create_container_type<std::deque<T> >::create();
+         }
+      };
+      
       template<>
-      inline adiak_datatype_t *adiak::internal::make_type(const std::string &s) {
-         adiak_type_t dtype = adiak_string;
-         adiak_datatype_t *datatype = adiak_get_basetype(dtype);
-         return datatype;
-      }
+      struct make_type<std::string> {
+         static adiak_datatype_t *create() {
+            adiak_type_t dtype = adiak_string;
+            adiak_datatype_t *datatype = adiak_get_basetype(dtype);
+            return datatype;
+         }
+      };
 
-      template <std::size_t I = 0, typename... Ts>
-      typename std::enable_if<I == sizeof...(Ts), void>::type
-      set_tuple_type(const std::tuple<Ts...> &c, adiak_datatype_t **dtypes) {
-      }
-
-      template <std::size_t I = 0, typename... Ts>
-      typename std::enable_if<I < sizeof...(Ts), void>::type
-      set_tuple_type(const std::tuple<Ts...> &c, adiak_datatype_t **dtypes) {
-         dtypes[I] = make_type(std::get<I>(c));
-         set_tuple_type<I + 1, Ts...>(c, dtypes);
-      }
-
-      template <typename... Ts>
-      adiak_datatype_t *make_type(const std::tuple<Ts...> &c) {
-         adiak_datatype_t *datatype = (adiak_datatype_t *) malloc(sizeof(adiak_datatype_t));
-         size_t n = std::tuple_size<std::tuple<Ts...> >::value;
-         memset(datatype, 0, sizeof(*datatype));
-         datatype->dtype = adiak_tuple;
-         datatype->numerical = adiak_numerical_from_type(datatype->dtype);
-         datatype->num_elements = n;
-         datatype->num_subtypes = n;
-         datatype->subtype = (adiak_datatype_t **) malloc(sizeof(adiak_datatype_t *) * n);
-         set_tuple_type<0, Ts...>(c, datatype->subtype);
-         return datatype;
-      }
+      template <typename T, std::size_t I>
+      struct set_tuple_type {
+         static void settype(adiak_datatype_t **dtypes) {
+            dtypes[I-1] = make_type<typename std::tuple_element<I-1, T>::type>::create();
+            set_tuple_type<T, I-1>::settype(dtypes);
+         }
+      };
 
       template <typename T>
-      typename std::enable_if<is_container<T>::value, adiak_datatype_t *>::type
-      make_type(const T &c) {
-         adiak_datatype_t *datatype = (adiak_datatype_t *) malloc(sizeof(adiak_datatype_t));
-         memset(datatype, 0, sizeof(*datatype));
-         datatype->dtype = element_type<T>::dtype;
-         datatype->numerical = adiak_numerical_from_type(datatype->dtype);
-         datatype->num_elements = c.size();
-         datatype->num_subtypes = 1;
-         datatype->subtype = (adiak_datatype_t **) malloc(sizeof(adiak_datatype_t *));
-         if (c.empty()) {
-            typename T::value_type tmp;
-            datatype->subtype[0] = make_type(tmp);
+      struct set_tuple_type<T, 0> {
+         static void settype(adiak_datatype_t **dtypes) {
          }
-         else {
-            datatype->subtype[0] = make_type(*c.begin());
-         }
-         if (datatype->subtype[0] == NULL) {
-            free(datatype);
-            datatype = NULL;
-         }
-         return datatype;
-      }
+      };
 
+
+      template<typename... Ts>
+      struct make_type<std::tuple<Ts...> > {
+         static adiak_datatype_t *create() {
+            adiak_datatype_t *datatype = (adiak_datatype_t *) malloc(sizeof(adiak_datatype_t));
+            const size_t N = std::tuple_size<std::tuple<Ts...> >::value;
+            memset(datatype, 0, sizeof(*datatype));
+            datatype->dtype = adiak_tuple;
+            datatype->numerical = adiak_numerical_from_type(datatype->dtype);
+            datatype->num_elements = N;
+            datatype->num_subtypes = N;
+            datatype->subtype = (adiak_datatype_t **) malloc(sizeof(adiak_datatype_t *) * N);
+            set_tuple_type<std::tuple<Ts...>, N>::settype(datatype->subtype);
+            return datatype;            
+         }
+      };
+      
+      
       typedef char* str_ptr;
       typedef struct timeval *timeval_ptr;
 
-      inline bool make_value(const unsigned long &c, adiak_value_t *value) { value->v_long = c; return true; }
-      inline bool make_value(const signed long &c, adiak_value_t *value) { value->v_long = c; return true; }
-      inline bool make_value(const signed int &c, adiak_value_t *value) { value->v_int = c; return true; }
-      inline bool make_value(const unsigned int &c, adiak_value_t *value) { value->v_int = c; return true; }
-      inline bool make_value(const double &c, adiak_value_t *value) { value->v_double = c; return true; }
-      inline bool make_value(const float &c, adiak_value_t *value) { value->v_double = c; return true; }
-      inline bool make_value(const std::string &c, adiak_value_t *value) { value->v_ptr = strdup(c.c_str()); return true; }
-      inline bool make_value(const str_ptr &c, adiak_value_t *value) { value->v_ptr = strdup(c); return true; }
+      inline bool make_value(const unsigned long &c, adiak_value_t *value, adiak_datatype_t *) { value->v_long = c; return true; }
+      inline bool make_value(const signed long &c, adiak_value_t *value, adiak_datatype_t *) { value->v_long = c; return true; }
+      inline bool make_value(const signed int &c, adiak_value_t *value, adiak_datatype_t *) { value->v_int = c; return true; }
+      inline bool make_value(const unsigned int &c, adiak_value_t *value, adiak_datatype_t *) { value->v_int = c; return true; }
+      inline bool make_value(const double &c, adiak_value_t *value, adiak_datatype_t *) { value->v_double = c; return true; }
+      inline bool make_value(const float &c, adiak_value_t *value, adiak_datatype_t *) { value->v_double = c; return true; }
+      inline bool make_value(const std::string &c, adiak_value_t *value, adiak_datatype_t *) { value->v_ptr = strdup(c.c_str()); return true; }
+      inline bool make_value(const str_ptr &c, adiak_value_t *value, adiak_datatype_t *) { value->v_ptr = strdup(c); return true; }
 
-      inline bool make_value(const timeval_ptr &c, adiak_value_t *value) {
+      inline bool make_value(const timeval_ptr &c, adiak_value_t *value, adiak_datatype_t *) {
          struct timeval *cpy = (struct timeval *) malloc(sizeof(struct timeval));
          *cpy = *c;
          value->v_ptr = cpy;
          return true;
       }
       
-      template <typename T, typename... Ts> bool make_value(const std::tuple<Ts...> &c, adiak_value_t *value);
-      template <typename T> typename std::enable_if<has_adiak_underlying_type<T>::value, bool>::type make_value(const T &c, adiak_value_t *value);
-      template <typename T> typename std::enable_if<is_container<T>::value, bool>::type make_value(const T &c, adiak_value_t *value);
+      template <typename T, typename... Ts> bool make_value(const std::tuple<Ts...> &c, adiak_value_t *value, adiak_datatype_t *);
+      template <typename T> typename std::enable_if<has_adiak_underlying_type<T>::value, bool>::type make_value(const T &c, adiak_value_t *value, adiak_datatype_t *);
+      template <typename T> typename std::enable_if<is_container<T>::value, bool>::type make_value(const T &c, adiak_value_t *value, adiak_datatype_t *);
       
       template <typename T>
       inline typename std::enable_if<has_adiak_underlying_type<T>::value, bool>::type
-      make_value(const T &c, adiak_value_t *value) {
-         return make_value(c.v, value);
+      make_value(const T &c, adiak_value_t *value, adiak_datatype_t * dtype) {
+         return make_value(c.v, value, dtype);
       }
 
       template <std::size_t I = 0, typename... Ts>
       typename std::enable_if<I == sizeof...(Ts), bool>::type
-      set_tuple_value(const std::tuple<Ts...> &c, adiak_value_t *value) {
+      set_tuple_value(const std::tuple<Ts...> &c, adiak_value_t *value, adiak_datatype_t *) {
          return true;
       }
       
       template <std::size_t I = 0, typename... Ts>
       typename std::enable_if<I < sizeof...(Ts), bool>::type
-      set_tuple_value(const std::tuple<Ts...> &c, adiak_value_t *values) {
-         bool result = make_value(std::get<I>(c), values+I);
+      set_tuple_value(const std::tuple<Ts...> &c, adiak_value_t *values, adiak_datatype_t *dtype) {
+         bool result = make_value(std::get<I>(c), values+I, dtype->subtype[I]);
          if (!result)
             return false;
-         set_tuple_value<I + 1, Ts...>(c, values);
+         set_tuple_value<I + 1, Ts...>(c, values, dtype);
          return true;
       }
       
       template <typename... Ts>
-      bool make_value(const std::tuple<Ts...> &c, adiak_value_t *value) {
+      bool make_value(const std::tuple<Ts...> &c, adiak_value_t *value, adiak_datatype_t *dtype) {
          size_t n = std::tuple_size<std::tuple<Ts...> >::value;         
          adiak_value_t *valarray = (adiak_value_t *) malloc(sizeof(adiak_value_t) * n);
-         bool result = set_tuple_value(c, valarray);
+         bool result = set_tuple_value(c, valarray, dtype);
          if (!result)
             return false;
          value->v_ptr = valarray;
@@ -210,15 +245,16 @@ namespace adiak
 
       template <typename T>
       typename std::enable_if<is_container<T>::value, bool>::type
-      make_value(const T &c, adiak_value_t *value) {
+      make_value(const T &c, adiak_value_t *value, adiak_datatype_t *dtype) {
          adiak_value_t *valarray = (adiak_value_t *) malloc(sizeof(adiak_value_t) * c.size());
          int j = 0;
          for (typename T::const_iterator i = c.begin(); i != c.end(); i++) {
-            bool result = make_value(*i, valarray + j++);
+            bool result = make_value(*i, valarray + j++, dtype->subtype[0]);
             if (!result)
                return false;
-         }
+         }         
          value->v_ptr = valarray;
+         dtype->num_elements = c.size();
          return true;
       }
    }

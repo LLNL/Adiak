@@ -106,11 +106,11 @@ namespace adiak
     **/
    template <typename T>
    bool value(std::string name, T value, adiak_category_t category = adiak_general) {
-      adiak_datatype_t *datatype = adiak::internal::make_type(value);
+      adiak_datatype_t *datatype = adiak::internal::make_type<T>::create();
       if (!datatype)
-         return false;
+         return false;      
       adiak_value_t *avalue = (adiak_value_t *) malloc(sizeof(adiak_value_t));
-      bool result = adiak::internal::make_value(value, avalue);
+      bool result = adiak::internal::make_value(value, avalue, datatype);
       if (!result)
          return false;
       return adiak_raw_namevalue(name.c_str(), category, avalue, datatype) == 0;
