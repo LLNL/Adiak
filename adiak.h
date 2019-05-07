@@ -18,15 +18,8 @@ typedef enum {
    adiak_categorical, /* Means values are unique */
    adiak_ordinal,     /* Means the value has an ordering */
    adiak_interval,    /* Means the value has ranges (can be subtracted) */
-   adiak_rational     /* Means the value is divisble */
+   adiak_rational     /* Means the value is divisible */
 } adiak_numerical_t;
-
-typedef enum {
-   adiak_grouping_unset = 0,
-   adiak_point,       /* A single value */
-   adiak_range,       /* All values between two specified values */
-   adiak_set,         /* A set of values */
-} adiak_grouping_t;
 
 typedef enum {
    adiak_type_unset = 0,
@@ -35,12 +28,16 @@ typedef enum {
    adiak_int,         /* adiak_value string: %d (implies rational) */
    adiak_uint,        /* adiak_value string: %u (implies rational) */
    adiak_double,      /* adiak_value string: %f (implies rational) */
-   adiak_date,        /* adiak_value string: %D (implies interval), passed as a unsigned long in seconds since epoch */
+   adiak_date,        /* adiak_value string: %D (implies interval), passed as a signed long in seconds since epoch */
    adiak_timeval,     /* adiak_value string: %t (implies interval), passed as a 'struct timeval *' */
    adiak_version,     /* adiak_value string: %v (implies oridinal), passed as a char*  */
    adiak_string,      /* adiak_value string: %s (implies oridinal), passed as a char*  */
    adiak_catstring,   /* adiak_value string: %r (implies categorical), passed as a char* */
-   adiak_path         /* adiak_value string: %p (implies categorical), passed as a char* */
+   adiak_path,        /* adiak_value string: %p (implies categorical), passed as a char* */
+   adiak_range,       /* adiak_value string <typestring> (implies categorical), */
+   adiak_set,         /* adiak_value string [typestring], passed as a size integer */
+   adiak_list,        /* adiak_value string {typestring}, passed as a size integer */
+   adiak_tuple        /* adiak_value string (typestring1, typestring2, ..., typestringN), passed as an N integer */
 } adiak_type_t;
 
 typedef enum {
@@ -50,15 +47,22 @@ typedef enum {
    adiak_performance /* Information about performance */
 } adiak_category_t;
 
-typedef struct {
-   adiak_numerical_t numerical;
-   adiak_grouping_t grouping;
+typedef struct adiak_datatype_t {
    adiak_type_t dtype;
-   adiak_category_t category;
+   adiak_numerical_t numerical;
+   int num_elements;
+   int num_subtypes;
+   struct adiak_datatype_t **subtype;
 } adiak_datatype_t;
 
-static const adiak_datatype_t adiak_unset_datatype = { adiak_numerical_unset, adiak_grouping_unset, adiak_type_unset, adiak_category_unset };
-
+typedef union  {
+   signed long v_long;
+   int v_int;
+   double v_double;
+   void *v_ptr;
+} adiak_value_t;
+   
+static const adiak_datatype_t adiak_unset_datatype = { adiak_type_unset, adiak_numerical_unset, 0, 0, NULL };
 
 /**
  * Initializes the adiak interface.  When run in an MPI job, adiak takes a communicator used for reducing
@@ -69,22 +73,42 @@ void adiak_init(MPI_Comm *communicator);
 #else
 void adiak_init(void *unused);
 #endif
-void adiak_fini();
 
 /**
- * adiak_value registers a name/value pair.  The printf-style typestr describes the type of the 
- * value, which is constructed from the string specifiers above.  The varargs contain the
- * the actual values.  For example:
- *   adiak_value("gridvalues", "{%f}", 4, 5.4, 18.1, 24.0, 92.8);
- *   adiak_value("gridvalues", "[%f]", 4, gridarray);
- *   adiak_value("build_compiler", "%s", "intel@17.0.1");
- *   adiak_value("problemsize", "%lu", 14000);
- *   adiak_value("checkpointtime", "-%t-", cpoint_start, cpoint_end);
- *   adiak_value("maxheat", "%f", mheat);
+ * adiak_fini should be called before program exit.  If using MPI, it should be called before
+ * MPI_finalize.
  **/
-int adiak_value(const char *name, adiak_category_t category, const char *typestr, ...);
-int adiak_rawval(const char *name, const void *elems, size_t elem_size, size_t num_elems, adiak_datatype_t valtype);
+void adiak_fini();
+   
+/**
+ * adiak_namevalue registers a name/value pair.  The printf-style typestr describes the type of the 
+ * value, which is constructed from the string specifiers above.  The varargs contains parameters
+ * for the type.  The entire type describes how value is encoded.  For example:
+ * 
+ * adiak_namevalue("numrecords", adiak_general, "%d", 10);
+ *
+ * adiak_namevalue("buildcompiler", adiak_general, "%v", "gcc@4.7.3");
+ *
+ * double gridvalues[] = { 5.4, 18.1, 24.0, 92.8 };
+ * adiak_namevalue("gridvals", adiak_general, "[%f]", gridvalues, 4);
+ *
+ * struct { int pos; const char *val; } letters[3] = { {1, 'a'}, {2, 'b'}, {3, 'c} }
+ * adiak_namevalue("alphabet", adiak_general, "[(%u, %s)]", letters, 3, 2);
+ **/
+int adiak_namevalue(const char *name, adiak_category_t category, const char *typestr, ...);
 
+/**
+ * adiak_new_datatype construts a new adiak_datatype_t that can be
+ * passed to adiak_raw_namevalue.  It is not safe to free this datatype.
+ **/
+adiak_datatype_t *adiak_new_datatype(const char *typestr, ...);
+
+/**
+ * Similar to adiak_namevalue, adiak_raw_namevalue registers a new name/value pair,
+ * but with an already constructed datatype and value.
+ **/
+int adiak_raw_namevalue(const char *name, adiak_category_t category, adiak_value_t *value, adiak_datatype_t *type);
+   
 int adiak_user();  /* Makes a 'user' name/val with the real name of who's running the job */
 int adiak_uid(); /* Makes a 'uid' name/val with the uid of who's running the job */
 int adiak_launchdate(); /* Makes a 'date' name/val with the date of when this job started */
@@ -102,8 +126,7 @@ int adiak_job_size(); /* Makes a 'jobsize' name/val with the number of ranks in 
 int adiak_hostlist(); /* Makes a 'hostlist' name/val with the set of hostnames in this MPI job */
 int adiak_mpitime(); /* Makes an 'mpitime' name/val with the timeval of how much time was spent in MPI */
 
-adiak_numerical_t adiak_numerical_from_type(adiak_type_t t);
-
+adiak_numerical_t adiak_numerical_from_type(adiak_type_t dtype);
 #endif
 
 #if defined(__cplusplus)

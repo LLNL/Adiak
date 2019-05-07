@@ -1,6 +1,38 @@
 #include <string>
 
 #include "adiak.h"
+
+namespace adiak
+{
+   /**
+    * date/version/path/catpath are used to distinguise these types from strings and longs
+    * when you pass values to adiak::value.
+    **/
+   //A date, represented as seconds since epcoh.
+   struct date {
+      unsigned long v;
+      date(unsigned long sec_since_epoch) { v = sec_since_epoch; }
+      operator unsigned long() const { return v; }
+      typedef unsigned long adiak_underlying_type;
+   };
+
+   //A version number, as a string.
+   struct version {
+      std::string v;
+      version(std::string verstring) { v = verstring; }
+      operator std::string() const { return v; }
+      typedef std::string adiak_underlying_type;
+   };
+
+   //A file path, as a string.
+   struct path {
+      std::string v;      
+      path(std::string filepath) { v = filepath; }
+      operator std::string() const { return v; }
+      typedef std::string adiak_underlying_type;      
+   };
+}
+
 #include "adiak_internal.hpp"
 
 namespace adiak
@@ -74,55 +106,22 @@ namespace adiak
     **/
    template <typename T>
    bool value(std::string name, T value, adiak_category_t category = adiak_general) {
-      adiak_datatype_t datatype = adiak_unset_datatype;
-      datatype.category = category;
-      return adiak::internal::handle_container(name, value, datatype);
+      adiak_datatype_t *datatype = adiak::internal::make_type(value);
+      if (!datatype)
+         return false;
+      adiak_value_t *avalue = (adiak_value_t *) malloc(sizeof(adiak_value_t));
+      bool result = adiak::internal::make_value(value, avalue);
+      if (!result)
+         return false;
+      return adiak_raw_namevalue(name.c_str(), category, avalue, datatype) == 0;
    }
    
    template <typename T>
    bool value(std::string name, T valuea, T valueb, adiak_category_t category = adiak_general) {
-      adiak_datatype_t datatype = adiak_unset_datatype;
-      datatype.category = category;
-      return adiak::internal::handle_container(name, valuea, valueb, datatype);
+      //adiak_datatype_t datatype = adiak_unset_datatype;
+      //return adiak::internal::handle_container(name, valuea, valueb, datatype);
+      return true;
    }
-   
-   template <typename T>
-   bool value(std::string name, T value, adiak_datatype_t datatype) {
-      return adiak::internal::handle_container(name, value, datatype);
-   }      
-
-   template <typename T>
-   bool value(std::string name, T valuea, T valueb, adiak_datatype_t datatype) {
-      return adiak::internal::handle_container(name, valuea, valueb, datatype);
-   }   
-
-   /**
-    * date/version/path/catpath are used to distinguise these types from strings and longs
-    * when you pass values to adiak::value.
-    **/
-   //A date, represented as seconds since epcoh.
-   struct date {
-      unsigned long v;
-      date(unsigned long sec_since_epoch) { v = sec_since_epoch; }
-      operator unsigned long() const { return v; }
-      typedef unsigned long adiak_underlying_type;
-   };
-
-   //A version number, as a string.
-   struct version {
-      std::string v;
-      version(std::string verstring) { v = verstring; }
-      operator std::string() const { return v; }
-      typedef std::string adiak_underlying_type;
-   };
-
-   //A file path, as a string.
-   struct path {
-      std::string v;      
-      path(std::string filepath) { v = filepath; }
-      operator std::string() const { return v; }
-      typedef std::string adiak_underlying_type;      
-   };
 
    //A categorical string, which functions like a string but flags it as unsortable.
    struct catstring {
@@ -132,53 +131,95 @@ namespace adiak
       typedef std::string adiak_underlying_type;
    };     
 
+#if defined(MPI_VERSION)
+   inline void init(MPI_Comm *communicator) {
+      adiak_init(communicator);
+   }
+#else
+   inline void init() {
+      adiak_init(NULL);
+   }   
+#endif
+
+   inline void fini() {
+      adiak_fini();
+   }
+
    //Registers a name/value string of "user" with the real name of the person running this process
-   // (e.g., "Matthew LeGendre").
-   bool user();
+   // (e.g., "John Smith").
+   inline bool user() {
+      return adiak_user() == 0;
+   }
 
    //Registers a name/value string of "uid" with the account name running this process
-   // (e.g., "legendre").
-   bool uid();
-
+   // (e.g., "jsmith").
+   inline bool uid() {
+      return adiak_uid() == 0;
+   }
+   
    //Registers a name/value date of "date" with the starttime of this process.
-   bool launchdate();
+   inline bool launchdate() {
+      return adiak_launchdate() == 0;
+   }
 
    //Registers a name/value string of "executable" with executable file (with path stripped) running this process.
-   bool executable();
+   inline bool executable() {
+      return adiak_executable() == 0;
+   }
 
    //Registers a name/value path of "executablepath" with the full path to the executable file running this process.
-   bool executablepath();
+   inline bool executablepath() {
+      return adiak_executablepath() == 0;
+   }
 
    //Registers a name/value set of paths of "libaries" with the full path to every shared library loaded in this
-   // process.
-   bool libraries();
+   // process.   
+   inline bool libraries() {
+      return adiak_libraries() == 0;
+   }
 
-   //Registers a name/value set of strings with the command line arguments running this job.
-   bool cmdline();
+   //Registers a name/value list of strings with the command line arguments running this job.   
+   inline bool cmdline() {
+      return adiak_cmdline() == 0;
+   }
 
-   //Registers a name/value string of "hostname" with the hostname running this job.   
-   bool hostname();
+   //Registers a name/value string of "hostname" with the hostname running this job.      
+   inline bool hostname() {
+      return adiak_hostname() == 0;
+   }
 
    //Registers a name/value string of "clustername" with the cluster name (hostname with numbers stripped)
-   bool clustername();
+   inline bool clustername() {
+      return adiak_clustername() == 0;
+   }
 
    //Registers a name/value timeval of "walltime" with the walltime this process ran for.  Requires adiak_fini()
-   // to be called before MPI_finalize() or the end of a non-mpi job.
-   bool walltime();
+   // to be called before MPI_finalize() or the end of a non-mpi job.   
+   inline bool walltime() {
+      return adiak_walltime() == 0;
+   }
 
    //Registers a name/value timeval of "systime" with the time this process spent in system calls (typicall IO
-   // and communication).  Requires adiak_fini() to be called before MPI_finalize() or the end of a non-mpi job.
-   bool systime();
+   // and communication).  Requires adiak_fini() to be called before MPI_finalize() or the end of a non-mpi job.   
+   inline bool systime() {
+      return adiak_systime() == 0;
+   }
 
    //Registers a name/value timeval of "cputime" with the time this process spent on the CPU.
-   // Requires adiak_fini() to be called before MPI_finalize() or the end of a non-mpi job.
-   bool cputime();
+   // Requires adiak_fini() to be called before MPI_finalize() or the end of a non-mpi job.   
+   inline bool cputime() {
+      return adiak_cputime() == 0;
+   }   
 
    //Registers a name/value integer of "jobsize" with the number of ranks in this job.
-   // Only works if adiak_init was called with a valid MPI communicator.
-   bool jobsize();
+   // Only works if adiak_init was called with a valid MPI communicator.   
+   inline bool jobsize() {
+      return adiak_job_size() == 0;
+   }
 
    //Registers a name/value set of strings with the hostnames that are part of this job.
-   // Only works if adiak_init was called with a valid MPI communicator.
-   bool hostlist();
+   // Only works if adiak_init was called with a valid MPI communicator.   
+   inline bool hostlist() {
+      return adiak_hostlist() == 0;
+   }   
 }

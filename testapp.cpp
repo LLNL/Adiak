@@ -37,7 +37,40 @@ int main(int argc, char *argv[])
    names.insert("david");
    names.insert("greg");
 
+   vector<tuple<string, double, double> > points;
+
+   points.push_back(make_tuple("first", 1.0, 1.0));
+   points.push_back(make_tuple("second", 2.0, 4.0));
+   points.push_back(make_tuple("third", 3.0, 9.0));
+
+   vector<string> ap_a;
+   ap_a.push_back("first");
+   ap_a.push_back("second");
+   ap_a.push_back("third");
+   vector<double> ap_b;
+   ap_b.push_back(1.0);
+   ap_b.push_back(2.0);
+   ap_b.push_back(3.0);
+   vector<double> ap_c;
+   ap_c.push_back(1.0);
+   ap_c.push_back(4.0);
+   ap_c.push_back(9.0);
+   tuple<vector<string>, vector<double>, vector<double> > antipoints = make_tuple(ap_a, ap_b, ap_c);
+
+
+   result = adiak::value("points", points);
+   if (!result) printf("return: %d\n\n", result);
+
+   result = adiak::value("antipoints", antipoints);
+   if (!result) printf("return: %d\n\n", result);
+
+   result = adiak::value("str", std::string("s"));
+   if (!result) printf("return: %d\n\n", result);
+
    result = adiak::value("compiler", adiak::version("gcc@8.1.0"));
+   if (!result) printf("return: %d\n\n", result);
+
+   result = adiak::value("mydouble", (double) 3.14);
    if (!result) printf("return: %d\n\n", result);
 
    result = adiak::value("gridvalues", grid);
@@ -51,10 +84,6 @@ int main(int argc, char *argv[])
 
    result = adiak::value("githash", adiak::catstring("a0c93767478f23602c2eb317f641b091c52cf374"));
    if (!result) printf("return: %d\n\n", result);
-   
-   adiak_datatype_t customtype = {adiak_categorical, adiak_point, adiak_double, adiak_performance};
-   result = adiak::value("unsortable_double", 0.123, customtype);
-   if (!result) printf("return: %d\n\n", result);   
    
    result = adiak::value("birthday", adiak::date(286551000));
    if (!result) printf("return: %d\n\n", result);
@@ -86,8 +115,8 @@ int main(int argc, char *argv[])
    result = adiak::hostname();
    if (!result) printf("return: %d\n\n", result);
 
-//   result = adiak::clustername();
-//   if (!result) printf("return: %d\n\n", result);
+   result = adiak::clustername();
+   if (!result) printf("return: %d\n\n", result);
 
    result = adiak::walltime();
    if (!result) printf("return: %d\n\n", result);
@@ -106,7 +135,15 @@ int main(int argc, char *argv[])
 
    gettimeofday(&end, NULL);
    result = adiak::value("computetime", &start, &end);
-
+   if (!result) printf("return: %d\n\n", result);
+   
+   array<float, 3> floatar;
+   floatar[0] = 0.01f;
+   floatar[1] = 0.02f;
+   floatar[2] = 0.03f;
+   result = adiak::value("floats", floatar);
+   if (!result) printf("return: %d\n\n", result);
+   
    adiak::fini();
    MPI_Finalize();
    return 0;

@@ -5,10 +5,118 @@
 #include <sys/time.h>
 #include <assert.h>
 
-static void cb(const char *name, void *elems, size_t elem_size, size_t num_elems, adiak_datatype_t valtype, void *opaque);
-
 #define XSTR(S) #S
 #define STR(S) XSTR(S)
+
+static void print_value(adiak_value_t *val, adiak_datatype_t *t)
+{
+   if (!t)
+      printf("ERROR");
+   switch (t->dtype) {
+      case adiak_type_unset:
+         printf("UNSET");
+         break;
+      case adiak_long:
+         printf("%ld", val->v_long);
+         break;
+      case adiak_ulong:
+         printf("%lu", (unsigned long) val->v_long);
+         break;
+      case adiak_int:
+         printf("%d", val->v_int);
+         break;
+      case adiak_uint:
+         printf("%u", (unsigned int) val->v_int);
+         break;         
+      case adiak_double:
+         printf("%f", val->v_double);
+         break;
+      case adiak_date: {
+         char datestr[512];
+         signed long seconds_since_epoch = (signed long) val->v_long;
+         struct tm *loc = localtime(&seconds_since_epoch);
+         strftime(datestr, sizeof(datestr), "%a, %d %b %Y %T %z", loc);
+         printf("%s", datestr);
+         break;
+      }
+      case adiak_timeval: {
+         struct timeval *tval = (struct timeval *) val->v_ptr;
+         double duration = tval->tv_sec + (tval->tv_usec / 1000000.0);
+         printf("%fs (timeval)", duration);
+         break;
+      }
+      case adiak_version: {
+         char *s = (char *) val->v_ptr;
+         printf("%s (version)", s);
+         break;
+      }
+      case adiak_string: {
+         char *s = (char *) val->v_ptr;
+         printf("%s (string)", s);
+         break;
+      }      
+      case adiak_catstring: {
+         char *s = (char *) val->v_ptr;
+         printf("%s (catstring)", s);
+         break;
+      }
+      case adiak_path: {
+         char *s = (char *) val->v_ptr;
+         printf("%s (path)", s);
+         break;
+      }
+      case adiak_range: {
+         adiak_value_t *subvals = (adiak_value_t *) val->v_ptr;
+         print_value(subvals+0, t->subtype[0]);
+         printf(" - ");
+         print_value(subvals+1, t->subtype[0]);
+         break;
+      }
+      case adiak_set: {
+         adiak_value_t *subvals = (adiak_value_t *) val->v_ptr;
+         int i;
+         printf("[");
+         for (i = 0; i < t->num_elements; i++) {
+            print_value(subvals + i, t->subtype[0]);
+            if (i+1 != t->num_elements)
+               printf(", ");
+         }
+         printf("]");
+         break;
+      }
+      case adiak_list: {
+         adiak_value_t *subvals = (adiak_value_t *) val->v_ptr;
+         int i;
+         printf("{");
+         for (i = 0; i < t->num_elements; i++) {
+            print_value(subvals + i, t->subtype[0]);
+            if (i+1 != t->num_elements)
+               printf(", ");
+         }
+         printf("}");
+         break;
+      }
+      case adiak_tuple: {
+         adiak_value_t *subvals = (adiak_value_t *) val->v_ptr;
+         int i;
+         printf("<");
+         for (i = 0; i < t->num_elements; i++) {
+            print_value(subvals + i, t->subtype[i]);
+            if (i+1 != t->num_elements)
+               printf(", ");
+         }
+         printf(">");
+         break;
+      }
+   }
+}
+
+static void cb(const char *name, adiak_category_t category, adiak_value_t *value, adiak_datatype_t *t, void *opaque_value)
+{
+   printf("%s: ", name);
+   print_value(value, t);
+   printf("\n");
+}
 
 static void onload() __attribute__((constructor));
 static void onload()
@@ -16,78 +124,3 @@ static void onload()
    adiak_register_cb(1, adiak_category_all, cb, 0, NULL);
 }
 
-static void cb(const char *name, void *elems, size_t elem_size, size_t num_elems, adiak_datatype_t valtype, void *opaque)
-{
-   int i;
-   printf("%s/%s: ", STR(TOOLNAME), name);
-
-   if (valtype.grouping == adiak_grouping_unset)
-      printf("?");
-   if (valtype.grouping == adiak_set)
-      printf("[");
-#define PRINT_ELEM(TOKEN, TYPE)  do { assert(sizeof(TYPE) == elem_size); printf(TOKEN, ((TYPE *) elems)[i]); } while (0)
-   for (i = 0; i < num_elems; i++) {
-      if (valtype.dtype == adiak_long)
-         PRINT_ELEM("%ld (signed long) ", long);
-      else if (valtype.dtype == adiak_ulong)
-         PRINT_ELEM("%lu (unsigned long)", unsigned long);
-      else if (valtype.dtype == adiak_int)
-         PRINT_ELEM("%d (signed int)", int);
-      else if (valtype.dtype == adiak_uint)
-         PRINT_ELEM("%u (unsigned int)", unsigned int);
-      else if (valtype.dtype == adiak_double)
-         PRINT_ELEM("%f", double);
-      else if (valtype.dtype == adiak_date) {
-         char datestr[512];
-         signed long seconds_since_epoch = ((signed long *) elems)[i];
-         struct tm *loc = localtime(&seconds_since_epoch);
-         strftime(datestr, sizeof(datestr), "%a, %d %b %Y %T %z", loc);
-         printf("%s", datestr);
-      }
-      else if (valtype.dtype == adiak_timeval) {
-         struct timeval *val = ((struct timeval **) elems)[i];
-         double duration = val->tv_sec + (val->tv_usec / 1000000.0);
-         printf("%fs (timeval)", duration);
-      }
-      else if (valtype.dtype == adiak_version)
-         PRINT_ELEM("%s (version)", char *);
-      else if (valtype.dtype == adiak_string)
-         PRINT_ELEM("%s (string)", char *);
-      else if (valtype.dtype == adiak_catstring)
-         PRINT_ELEM("%s (catstring)", char *);
-      else if (valtype.dtype == adiak_path)
-         PRINT_ELEM("%s (path)", char *);
-      else if (valtype.dtype == adiak_type_unset)
-         printf("UNKNOWN");
-
-      if (valtype.grouping == adiak_range && i == 0)
-         printf(" - ");
-      else if (i != num_elems-1)
-         printf(", ");
-   }
-   if (valtype.grouping == adiak_grouping_unset)
-      printf("?");
-   if (valtype.grouping == adiak_set)
-      printf("]");
-
-   printf(" of ");
-   switch (valtype.numerical) {
-      case adiak_categorical:
-         printf("categorical");
-         break;
-      case adiak_ordinal:
-         printf("ordinal");
-         break;
-      case adiak_interval:
-         printf("inteval");
-         break;
-      case adiak_rational:
-         printf("rational");
-         break;
-      case adiak_numerical_unset:
-         printf("unknown");
-         break;
-   }
-
-   printf("\n");
-}

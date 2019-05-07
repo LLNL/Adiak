@@ -17,11 +17,6 @@
 #include <sys/time.h>
 #include <link.h>
 
-typedef struct {
-   adiak_nameval_cb_t nameval_cb;
-   adiak_request_cb_t request_cb;
-} adiak_tool_v1_t;
-
 typedef struct adiak_tool_t {
    //Below fields are present in v1
    int version;
@@ -29,7 +24,6 @@ typedef struct adiak_tool_t {
    struct adiak_tool_t *prev;
    void *opaque_val;
    adiak_nameval_cb_t name_val_cb;
-   adiak_request_cb_t request_cb;
    int report_on_all_ranks;
    adiak_category_t category;
 } adiak_tool_t;
@@ -48,42 +42,21 @@ adiak_t adiak_public = {ADIAK_VERSION, ADIAK_VERSION, 0, 1, &local_tool_list};
 static adiak_t *global_adiak;
 static adiak_tool_t **tool_list;
 
-typedef enum {
-   base_none = 0,
-   base_long,
-   base_int,
-   base_string,
-   base_double,
-   base_ptr
-} base_type;
+static int measure_adiak_walltime;
+static int measure_adiak_systime;
+static int measure_adiak_cputime;
 
-typedef struct {
-   const char *typename;
-   char *format_chars;
-   adiak_type_t dtype;
-   adiak_numerical_t numerical;
-   size_t elem_size;
-   base_type base;
-   int version;
-} adiak_valentries_t;
-
-static adiak_valentries_t adiak_valentries[] = {
-   { "long",          "ld", adiak_long,      adiak_rational, sizeof(long),             base_long   },
-   { "unsigned long", "lu", adiak_ulong,     adiak_rational, sizeof(unsigned long),    base_long   },
-   { "int",           "d",  adiak_int,       adiak_rational, sizeof(int),              base_int    },
-   { "unsigned int",  "U",  adiak_uint,      adiak_rational, sizeof(unsigned int),     base_int    },
-   { "double",        "f",  adiak_double,    adiak_rational, sizeof(double),           base_double },
-   { "date",          "D",  adiak_date,      adiak_interval, sizeof(unsigned long),    base_long   },
-   { "timeval",       "t",  adiak_timeval,   adiak_interval, sizeof(struct timeval *), base_ptr    },
-   { "version",       "v",  adiak_version,   adiak_ordinal,  sizeof(char *),           base_string },
-   { "string",        "s",  adiak_string,    adiak_ordinal,  sizeof(char *),           base_string },
-   { "catstring",     "r",  adiak_catstring, adiak_categorical, sizeof(char *),        base_string },
-   { "path",          "p",  adiak_path,      adiak_categorical, sizeof(char *),        base_string },
-   { NULL, NULL, 0, 0, 0, base_none }
-};
-
-static const adiak_datatype_t adiak_v1_types = {adiak_rational, adiak_set, adiak_path, adiak_performance};
-static adiak_datatype_t adiak_types_by_version[1];
+static adiak_datatype_t base_long = { adiak_long, adiak_rational, 0, 0, NULL };
+static adiak_datatype_t base_ulong = { adiak_ulong, adiak_rational, 0, 0, NULL };
+static adiak_datatype_t base_int = { adiak_int, adiak_rational, 0, 0, NULL };
+static adiak_datatype_t base_uint = { adiak_uint, adiak_rational, 0, 0, NULL };
+static adiak_datatype_t base_double = { adiak_double, adiak_rational, 0, 0, NULL };
+static adiak_datatype_t base_date = { adiak_date, adiak_interval, 0, 0, NULL };
+static adiak_datatype_t base_timeval = { adiak_timeval, adiak_interval, 0, 0, NULL };
+static adiak_datatype_t base_version = { adiak_version, adiak_ordinal, 0, 0, NULL };
+static adiak_datatype_t base_string = { adiak_string, adiak_ordinal, 0, 0, NULL };
+static adiak_datatype_t base_catstring = { adiak_catstring, adiak_categorical, 0, 0, NULL };
+static adiak_datatype_t base_path = { adiak_path, adiak_categorical, 0, 0, NULL };
 
 #if defined(MPI_VERSION)
 static MPI_Comm adiak_communicator;
@@ -91,16 +64,20 @@ static int use_mpi;
 #endif
 
 static void adiak_common_init();
-static int format_match(const char *users, const char *reference);
-static adiak_valentries_t *get_valentry_from_char(const char *c);
-static int adiak_nameval(const char *name, const void *buffer, size_t buffer_size, size_t elem_size, adiak_datatype_t valtype);
-static int adiak_request(adiak_request_t req, int request_version);
-static struct passwd *get_passwd();
 static void adiak_register(int adiak_version, adiak_category_t category,
-                           adiak_nameval_cb_t nv, adiak_request_cb_t rq,
+                           adiak_nameval_cb_t nv,
                            int report_on_all_ranks, void *opaque_val);
 static int get_library_name(struct dl_phdr_info *info, size_t size, void *data);
 static int count_libraries(struct dl_phdr_info *info, size_t size, void *cnt);
+
+static int find_end_brace(const char *typestr, char endchar, int typestr_start, int typestr_end);
+static adiak_datatype_t *parse_typestr(const char *typestr, va_list *ap);
+static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_start, int typestr_end,
+                                              va_list *ap, int *new_typestr_start);
+static void free_adiak_type(adiak_datatype_t *t);
+static struct timeval starttime();
+static adiak_type_t toplevel_type(const char *typestr);
+static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *ptr);
 
 #if defined(MPI_VERSION)
 static int hostname_color(char *str, int index);
@@ -108,152 +85,118 @@ static int get_unique_host(char *name, int global_rank);
 static int gethostlist(char **hostlist, int *num_hosts, int *max_hostlen);
 #endif
 
-int adiak_value(const char *name, adiak_category_t category, const char *typestr, ...)
+adiak_datatype_t *adiak_new_datatype(const char *typestr, ...)
 {
-   va_list argp;
-   const char *c;
-   int in_set = 0, in_range = 0, in_array = 0, parsed_type = 0;
-   int i = 0, j = 0, set_size = 1, buffer_size = 0, elem_size = 0, array_size = 1;
-   int result, err_ret = -1;
-   adiak_datatype_t valtype = adiak_unset_datatype;
-   adiak_valentries_t *valentry;
+   va_list ap;
+   adiak_datatype_t *t;
+   va_start(ap, typestr);
+   t = parse_typestr(typestr, &ap);
+   va_end(ap);
+   return t;
+}
 
-   char *buffer = NULL;
-   char base_buffer[4096];
+int adiak_raw_namevalue(const char *name, adiak_category_t category, adiak_value_t *value, adiak_datatype_t *type)
+{
+   adiak_tool_t *tool;
+   for (tool = *tool_list; tool != NULL; tool = tool->next) {
+      if (!tool->report_on_all_ranks && !global_adiak->reportable_rank)
+         continue;
+      if (tool->category != adiak_category_all && tool->category != category)
+         continue;
+      if (tool->name_val_cb)
+         tool->name_val_cb(name, category, value, type, tool->opaque_val);
+   }
+   return 0;   
+}
+
+int adiak_namevalue(const char *name, adiak_category_t category, const char *typestr, ...)
+{
+   va_list ap;
+   adiak_datatype_t *t;
+   adiak_type_t toptype;
+   adiak_value_t *value = NULL;
+   void *container_ptr = NULL;
+
+   toptype = toplevel_type(typestr);
+   if (toptype == adiak_type_unset)
+      return -1;
+   value = (adiak_value_t *) malloc(sizeof(adiak_value_t));
+
+   va_start(ap, typestr);
+
+   switch (toptype) {
+      case adiak_type_unset:
+         return -1;
+      case adiak_long:
+      case adiak_ulong:
+      case adiak_date:
+         value->v_long = va_arg(ap, long);
+         break;
+      case adiak_int:
+      case adiak_uint:
+         value->v_int = va_arg(ap, int);
+         break;
+      case adiak_double:
+         value->v_double = va_arg(ap, double);
+         break;
+      case adiak_timeval: {
+         struct timeval *v = (struct timeval *) malloc(sizeof(struct timeval));
+         *v = *va_arg(ap, struct timeval *);
+         value->v_ptr = v;
+         break;
+      }
+      case adiak_version:
+      case adiak_string:
+      case adiak_catstring:
+      case adiak_path:
+         value->v_ptr = strdup(va_arg(ap, void*));
+         break;
+      case adiak_range:
+      case adiak_set:
+      case adiak_list:
+      case adiak_tuple:
+         container_ptr = va_arg(ap, void*);
+         break;
+   }
    
-   va_start(argp, typestr);
-
-   for (c = typestr; *c; c++) {
-      if (*c == ' ' || *c == '\n' || *c == '\t' || *c == '}' || *c == ']')
-         continue;      
-      else if (*c == '{') {
-         in_set = 1;
-         valtype.grouping = adiak_set;
-         set_size = va_arg(argp, int);
-      }
-      else if (*c == '[') {
-         in_array = 1;
-         valtype.grouping = adiak_set;
-         array_size = va_arg(argp, int);
-      }
-      else if (*c == '-') {
-         in_range = 1;
-         valtype.grouping = adiak_range;
-         set_size = 2;
-      }
-      else if (*c == '%') {
-         c++;
-         valentry = get_valentry_from_char(c);
-         if (!valentry)
-            goto error;
-         c += (strlen(valentry->format_chars) - 1);
-
-         elem_size = valentry->elem_size;
-         buffer_size = elem_size * set_size * array_size;
-         if (buffer_size < sizeof(base_buffer))
-            buffer = base_buffer;
-         else
-            buffer = (char *) malloc(buffer_size);
-
-         valtype.numerical = valentry->numerical;
-         valtype.dtype = valentry->dtype;
-         valtype.category = category;
-
-         if (!in_array) {
-            for (i = 0; i < set_size; i++) {
-               switch (valentry->base) {
-                  case base_long:
-                     ((long*) buffer)[j++] = va_arg(argp, long);
-                     break;
-                  case base_int:
-                     ((int*) buffer)[j++] = va_arg(argp, int);
-                     break;
-                  case base_double:
-                     ((double*) buffer)[j++] = va_arg(argp, double);
-                     break;
-                  case base_string:
-                     ((char**) buffer)[j++] = va_arg(argp, char*);
-                     break;
-                  case base_ptr:
-                     ((void**) buffer)[j++] = va_arg(argp, void*);
-                     break;
-                  case base_none:
-                     goto error;
-               }
-            }
-         }
-         else {
-            switch (valentry->base) {
-               case base_long: {
-                  long *elemarray = va_arg(argp, long*);
-                  for (i = 0; i < array_size; i++)
-                     ((long*) buffer)[j++] = elemarray[i];
-                  break;
-               }
-               case base_int: {
-                  int *elemarray = va_arg(argp, int*);
-                  for (i = 0; i < array_size; i++)
-                     ((int*) buffer)[j++] = elemarray[i];
-                  break;
-               }
-               case base_double: {
-                  double *elemarray = va_arg(argp, double*);
-                  for (i = 0; i < array_size; i++)
-                     ((double*) buffer)[j++] = elemarray[i];
-                  break;
-               }
-               case base_string: {
-                  char **elemarray = va_arg(argp, char **);
-                  for (i = 0; i < array_size; i++)
-                     ((char **) buffer)[j++] = elemarray[i];
-                  break;
-               }
-               case base_ptr: {
-                  void **elemarray = va_arg(argp, void **);
-                  for (i = 0; i < array_size; i++)
-                     ((void **) buffer)[j++] = elemarray[i];
-                  break;
-               }
-               case base_none:
-                  goto error;
-            }
-         }
-         if (!in_range && !in_set && !in_array)
-            valtype.grouping = adiak_point; 
-         parsed_type = 1;
-      }
-      else {
-         goto error;
-      }
+   t = parse_typestr(typestr, &ap);
+   va_end(ap);
+   if (!t) {
+      free(value);
+      return -1;
    }
 
-   if (!parsed_type)
-      goto error;
-
-   result = adiak_nameval(name, (void *) buffer, elem_size, set_size * array_size, valtype);
-   if (result == -1)
-      goto error;
-
-   err_ret = 0;
-  error:
-   if (buffer && buffer != base_buffer) {
-      free(buffer);
-      buffer = NULL;
+   if (container_ptr) {
+      copy_value(value, t, container_ptr);
    }
-   return err_ret;
+   
+   return adiak_raw_namevalue(name, category, value, t);
 }
 
-int adiak_rawval(const char *name, const void *elems, size_t elem_size, size_t num_elems, adiak_datatype_t valtype)
+adiak_numerical_t adiak_numerical_from_type(adiak_type_t dtype)
 {
-   return adiak_nameval(name, elems, elem_size, num_elems, valtype);
-}
-
-adiak_numerical_t adiak_numerical_from_type(adiak_type_t t)
-{
-   adiak_valentries_t *i;
-   for (i = adiak_valentries; i->typename != NULL; i++) {
-      if (i->dtype == t)
-         return i->numerical;
+   switch (dtype) {
+      case adiak_type_unset:
+         return adiak_numerical_unset;
+      case adiak_long:
+      case adiak_ulong:
+      case adiak_int:
+      case adiak_uint:
+      case adiak_double:
+         return adiak_rational;
+      case adiak_date:
+      case adiak_timeval:
+         return adiak_interval;
+      case adiak_version:
+      case adiak_string:
+         return adiak_ordinal;
+      case adiak_catstring:
+      case adiak_path:
+      case adiak_range:
+      case adiak_set:
+      case adiak_list:
+      case adiak_tuple:
+         return adiak_categorical;
    }
    return adiak_numerical_unset;
 }
@@ -261,13 +204,7 @@ adiak_numerical_t adiak_numerical_from_type(adiak_type_t t)
 void adiak_register_cb(int adiak_version, adiak_category_t category,
                        adiak_nameval_cb_t nv, int report_on_all_ranks, void *opaque_val)
 {
-   adiak_register(adiak_version, category, nv, NULL, report_on_all_ranks, opaque_val);
-}
-
-void adiak_register_preformance_request(int adiak_version, adiak_category_t category,
-                                        adiak_request_cb_t req, int report_on_all_ranks, void *opaque_val)
-{
-   adiak_register(adiak_version, category, NULL, req, report_on_all_ranks, opaque_val);   
+   adiak_register(adiak_version, category, nv, report_on_all_ranks, opaque_val);
 }
 
 int adiak_user()
@@ -275,7 +212,7 @@ int adiak_user()
    struct passwd *p;
    char *firstcomma, *user;
   
-   p = get_passwd();
+   p = getpwuid(getuid());
    if (!p)
       return -1;
    user = p->pw_gecos;
@@ -283,7 +220,7 @@ int adiak_user()
    if (firstcomma)
       *firstcomma = '\0';
 
-   adiak_value("user", adiak_general, "%s", user);
+   adiak_namevalue("user", adiak_general, "%s", user);
    return 0;
 }
 
@@ -291,27 +228,12 @@ int adiak_uid()
 {  
    struct passwd *p;
    
-   p = get_passwd();
+   p = getpwuid(getuid());
    if (!p)
       return -1;
    
-   adiak_value("uid", adiak_general, "%s", p->pw_name);
+   adiak_namevalue("uid", adiak_general, "%s", p->pw_name);
    return 0;
-}
-
-static struct timeval starttime()
-{
-   struct stat buf;
-   struct timeval tv;
-   int result;
-   tv.tv_sec = tv.tv_usec = 0;
-   result = stat("/proc/self", &buf);
-   if (result == -1)
-      return tv;
-
-   tv.tv_sec = buf.st_mtime;
-   tv.tv_usec = buf.st_mtim.tv_nsec / 1000;
-   return tv;
 }
 
 int adiak_launchdate()
@@ -319,7 +241,7 @@ int adiak_launchdate()
    struct timeval stime = starttime();
    if (stime.tv_sec == 0 && stime.tv_usec == 0)
       return -1;
-   adiak_value("date", adiak_general, "%D", stime.tv_sec);
+   adiak_namevalue("date", adiak_general, "%D", stime.tv_sec);
    return 0;
 }
 
@@ -338,7 +260,7 @@ int adiak_executable()
       filepart = path;
    else
       filepart++;
-   adiak_value("executable", adiak_general, "%s", filepart);
+   adiak_namevalue("executable", adiak_general, "%s", filepart);
    return 0;
 }
 
@@ -352,7 +274,7 @@ int adiak_executablepath()
    if (!result)
       return -1;
    
-   adiak_value("executablepath", adiak_general, "%p", strdup(path));
+   adiak_namevalue("executablepath", adiak_general, "%p", path);
    return 0;
 }
 
@@ -371,7 +293,7 @@ int adiak_libraries()
    linfo.cur = 0;
    dl_iterate_phdr(get_library_name, &linfo);
 
-   result = adiak_value("libraries", adiak_general, "[%p]", linfo.cur, linfo.names);
+   result = adiak_namevalue("libraries", adiak_general, "[%p]", linfo.names, linfo.cur);
    free(linfo.names);
    return result;
 }
@@ -413,7 +335,7 @@ int adiak_cmdline()
           myargv[j++] = buffer + i + 1;
    }
           
-   result = adiak_value("cmdline", adiak_general, "[%s]", myargc, myargv);
+   result = adiak_namevalue("cmdline", adiak_general, "{%s}", myargv, myargc);
    if (result == -1)
       return -1;
 
@@ -437,8 +359,8 @@ int adiak_hostname()
    if (result == -1)
       return -1;
    hostname[sizeof(hostname)-1] = '\0';
-
-   return adiak_value("hostname", adiak_general, "%s", hostname);
+   
+   return adiak_namevalue("hostname", adiak_general, "%s", hostname);
 }
 
 int adiak_clustername()
@@ -464,12 +386,8 @@ int adiak_clustername()
    }
    clustername[i] = '\0';
 
-   return adiak_value("cluster", adiak_general, "%s", clustername);
+   return adiak_namevalue("cluster", adiak_general, "%s", clustername);
 }
-
-static int measure_adiak_walltime;
-static int measure_adiak_systime;
-static int measure_adiak_cputime;
 
 int adiak_walltime()
 {
@@ -496,7 +414,7 @@ int adiak_job_size()
    if (!use_mpi)
       return -1;
    MPI_Comm_size(adiak_communicator, &size);
-   return adiak_value("jobsize", adiak_general, "%d", size);
+   return adiak_namevalue("jobsize", adiak_general, "%d", size);
 #else
    return -1;
 #endif
@@ -524,7 +442,7 @@ int adiak_hostlist()
    for (i = 0; i < num_hosts; i++)
       hostlist_array[i] = hostlist + (i * max_hostlen);
 
-   result = adiak_value("hostlist", adiak_general, "[%s]", num_hosts, hostlist_array);
+   result = adiak_namevalue("hostlist", adiak_general, "[%s]", hostlist_array, num_hosts);
    if (result == -1)
       goto error;
 
@@ -539,17 +457,6 @@ int adiak_hostlist()
 #else
    return -1;
 #endif   
-}
-
-int adiak_mpitime()
-{
-#if defined(MPI_VERSION)
-   if (!use_mpi)
-      return -1;   
-   return adiak_request(mpitime, 1);
-#else
-   return -1;
-#endif
 }
 
 #if defined(MPI_VERSION)
@@ -572,6 +479,21 @@ void adiak_init(void *unused)
 }
 #endif
 
+static struct timeval starttime()
+{
+   struct stat buf;
+   struct timeval tv;
+   int result;
+   tv.tv_sec = tv.tv_usec = 0;
+   result = stat("/proc/self", &buf);
+   if (result == -1)
+      return tv;
+
+   tv.tv_sec = buf.st_mtime;
+   tv.tv_usec = buf.st_mtim.tv_nsec / 1000;
+   return tv;
+}
+
 static int count_libraries(struct dl_phdr_info *info, size_t size, void *cnt) {
    int *count = (int *) cnt;
    if (info->dlpi_name && *info->dlpi_name)
@@ -583,7 +505,7 @@ static int get_library_name(struct dl_phdr_info *info, size_t size, void *data) 
    lib_info_t *linfo = (lib_info_t *) data;
    if (!info->dlpi_name || !*info->dlpi_name)
       return 0;
-   linfo->names[linfo->cur++] = strdup(info->dlpi_name);
+   linfo->names[linfo->cur++] = (char *) info->dlpi_name;
    return 0;
 }
 
@@ -593,6 +515,7 @@ static int measure_times(int systime, int cputime)
    struct tms buf;
    const char *name;
    long tics_per_sec;
+   struct timeval v;
 
    tics = times(&buf);
    if (tics == (clock_t) -1)
@@ -616,16 +539,15 @@ static int measure_times(int systime, int cputime)
       tics_per_sec = 100;
    }
       
-   struct timeval *v = (struct timeval *) malloc(sizeof(struct timeval));
-   v->tv_sec = tics / tics_per_sec;
-   v->tv_usec = (tics % tics_per_sec) * (1000000 / tics_per_sec);
-   return adiak_value(name, adiak_performance, "%t", v);
+   v.tv_sec = tics / tics_per_sec;
+   v.tv_usec = (tics % tics_per_sec) * (1000000 / tics_per_sec);
+   return adiak_namevalue(name, adiak_performance, "%t", &v);
 }
 
 static int measure_walltime()
 {
    struct timeval stime;
-   struct timeval etime, *diff;
+   struct timeval etime, diff;
    int result;
 
    stime = starttime();
@@ -636,16 +558,15 @@ static int measure_walltime()
    if (result == -1)
       return -1;
 
-   diff = malloc(sizeof(struct timeval));
-   diff->tv_sec = etime.tv_sec - stime.tv_sec;
+   diff.tv_sec = etime.tv_sec - stime.tv_sec;
    if (etime.tv_usec < stime.tv_usec) {
-      diff->tv_usec = 1000000 + etime.tv_usec - stime.tv_usec;
-      diff->tv_sec--;
+      diff.tv_usec = 1000000 + etime.tv_usec - stime.tv_usec;
+      diff.tv_sec--;
    }
    else
-      diff->tv_usec = etime.tv_usec - stime.tv_usec;
+      diff.tv_usec = etime.tv_usec - stime.tv_usec;
    
-   return adiak_value("walltime", adiak_performance, "%t", diff);   
+   return adiak_namevalue("walltime", adiak_performance, "%t", &diff);
 }
 
 void adiak_fini()
@@ -675,102 +596,10 @@ static void adiak_common_init()
    if (ADIAK_VERSION < global_adiak->minimum_version)
       global_adiak->minimum_version = ADIAK_VERSION;
    tool_list = global_adiak->tool_list;
-
-   adiak_types_by_version[0] = adiak_v1_types;
-}
-
-static int format_match(const char *users, const char *reference)
-{
-   if (*users != *reference)
-      return 0;
-   if (*(reference+1) == '\0')
-      return 1;
-   return *(users+1) == *(reference+1) ? 1 : 0;
-}
-
-static adiak_valentries_t *get_valentry_from_char(const char *c)
-{
-   adiak_valentries_t *i;
-   for (i = adiak_valentries; i->typename != NULL; i++) {
-      if (format_match(c, i->format_chars))
-         return i;
-   }
-   return NULL;
-}
-
-static int adiak_nameval(const char *name, const void *buffer, size_t elem_size, size_t num_elems, adiak_datatype_t valtype)
-{
-   adiak_tool_t *tool;
-   int valtype_version = -1, i;
-
-   for (i = 0; i < sizeof(adiak_types_by_version)/sizeof(adiak_datatype_t); i++) {
-      if (adiak_types_by_version[i].numerical >= valtype.numerical &&
-          adiak_types_by_version[i].grouping >= valtype.grouping &&
-          adiak_types_by_version[i].dtype >= valtype.dtype &&
-          adiak_types_by_version[i].category >= valtype.category) {
-         valtype_version = i;
-         break;
-      }
-   }
-   if (valtype_version == -1)
-      return -1;
-   
-   for (tool = *tool_list; tool != NULL; tool = tool->next) {
-      if (tool->version < valtype_version)
-         continue;
-      if (!tool->report_on_all_ranks && !global_adiak->reportable_rank)
-         continue;
-      if (tool->category != adiak_category_all && tool->category != valtype.category)
-         continue;
-      if (tool->name_val_cb)
-         tool->name_val_cb(name, (void *) buffer, elem_size, num_elems, valtype, tool->opaque_val);
-   }
-   return 0;
-}
-
-static int adiak_request(adiak_request_t req, int request_version)
-{
-   adiak_tool_t *tool;
-   for (tool = *tool_list; tool != NULL; tool = tool->next) {
-      if (tool->version < request_version)
-         continue;
-      if (!tool->report_on_all_ranks && !global_adiak->reportable_rank)
-         continue;      
-      if (tool->request_cb)
-         tool->request_cb(req, tool->opaque_val);
-   }
-   return 0;
-}
-
-static struct passwd *get_passwd()
-{
-   static struct passwd pwd;
-   static int found = 0;
-   struct passwd *p;
-
-   if (found == -1)
-      return NULL;
-   if (found)
-      return &pwd;
-
-   p = getpwuid(getuid());
-   if (!p) {
-      found = -1;
-      return NULL;
-   }
-   pwd.pw_name = strdup(p->pw_name);
-   pwd.pw_passwd = NULL;
-   pwd.pw_uid = p->pw_uid;
-   pwd.pw_gid = p->pw_gid;
-   pwd.pw_gecos = strdup(p->pw_gecos);
-   pwd.pw_dir = NULL;
-   pwd.pw_shell = NULL;
-   found = 1;
-   return &pwd;
 }
 
 static void adiak_register(int adiak_version, adiak_category_t category,
-                           adiak_nameval_cb_t nv, adiak_request_cb_t rq,
+                           adiak_nameval_cb_t nv,
                            int report_on_all_ranks, void *opaque_val)
 {
    adiak_tool_t *newtool;
@@ -781,7 +610,6 @@ static void adiak_register(int adiak_version, adiak_category_t category,
    newtool->opaque_val = opaque_val;
    newtool->report_on_all_ranks = report_on_all_ranks;
    newtool->name_val_cb = nv;
-   newtool->request_cb = rq;
    newtool->category = category;
    newtool->next = *tool_list;
    newtool->prev = NULL;
@@ -790,6 +618,284 @@ static void adiak_register(int adiak_version, adiak_category_t category,
    *tool_list = newtool;
    if (report_on_all_ranks && !global_adiak->report_on_all_ranks)
       global_adiak->report_on_all_ranks = 1;
+}
+
+static int find_end_brace(const char *typestr, char endchar, int typestr_start, int typestr_end) {
+   int depth = 0;
+   int cur = typestr_start;
+
+   if (!typestr)
+      return -1;
+
+   while (cur < typestr_end) {
+      if (typestr[cur] == '[' || typestr[cur] == '{' || typestr[cur] == '(' || typestr[cur] == '<')
+         depth++;
+      if (typestr[cur] == ']' || typestr[cur] == '}' || typestr[cur] == ')' || typestr[cur] == '>')
+         depth--;
+      if (depth == 0 && typestr[cur] == endchar)
+         return cur;
+      cur++;
+   }
+   return -1;      
+}
+static adiak_datatype_t *parse_typestr(const char *typestr, va_list *ap)
+{
+   int end = 0;
+   int len;
+   
+   len = strlen(typestr);
+   return parse_typestr_helper(typestr, 0, len, ap, &end);
+}
+
+static adiak_type_t toplevel_type(const char *typestr) {
+   const char *cur = typestr;
+   if (!cur)
+      return adiak_type_unset;
+   while (*cur == ' ' || *cur == '\t' || *cur == '\n' || *cur == ',')
+      cur++;
+   if (*cur == '%') {
+      cur++;      
+      switch (*cur) {
+         case 'l':
+            cur++;
+            if (*cur == 'd') return adiak_long;
+            if (*cur == 'u') return adiak_ulong;
+            return adiak_type_unset;
+         case 'd': return adiak_int;
+         case 'u': return adiak_uint;
+         case 'f': return adiak_double;
+         case 'D': return adiak_date;
+         case 't': return adiak_timeval;
+         case 'v': return adiak_version;
+         case 's': return adiak_string;
+         case 'r': return adiak_catstring;
+         case 'p': return adiak_path;
+         default:
+            return adiak_type_unset;
+      }
+   }
+   switch (*cur) {
+      case '<': return adiak_range;
+      case '[': return adiak_set;
+      case '{': return adiak_list;
+      case '(': return adiak_tuple;
+      default: return adiak_type_unset;
+   }
+}
+
+adiak_datatype_t *adiak_get_basetype(adiak_type_t t)
+{
+   switch (t) {
+      case adiak_type_unset:
+         return NULL;
+      case adiak_long:
+         return &base_long;
+      case adiak_ulong:
+         return &base_ulong;
+      case adiak_int:
+         return &base_int;
+      case adiak_uint:
+         return &base_uint;
+      case adiak_double:
+         return &base_double;
+      case adiak_date:
+         return &base_date;
+      case adiak_timeval:
+         return &base_timeval;
+      case adiak_version:
+         return &base_version;
+      case adiak_string:
+         return &base_string;
+      case adiak_catstring:
+         return &base_catstring;
+      case adiak_path:
+         return &base_path;
+      case adiak_range:
+      case adiak_set:
+      case adiak_list:
+      case adiak_tuple:
+      default:
+         return NULL;
+   }
+}
+
+static void free_adiak_type(adiak_datatype_t *t)
+{
+   int i;
+   if (t == NULL)
+      return;
+   if (adiak_get_basetype(t->dtype) == t)
+      return;
+   for (i = 0; i < t->num_subtypes; i++) {
+      free_adiak_type(t->subtype[i]);
+   }
+   free(t);
+}
+
+static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *ptr) {
+   int bytes_read = 0, result, type_index = 0, i;
+   adiak_value_t *newvalues;
+   switch (datatype->dtype) {
+      case adiak_type_unset:
+         return -1;
+      case adiak_long:
+      case adiak_ulong:
+      case adiak_date:
+         target->v_long = *((long *) ptr);
+         return sizeof(long);
+      case adiak_int:
+      case adiak_uint:
+         target->v_int = *((int *) ptr);
+         return sizeof(int);
+      case adiak_double:
+         target->v_double= *((double *) ptr);
+         return sizeof(double);
+      case adiak_timeval: {
+         struct timeval *v = (struct timeval *) malloc(sizeof(struct timeval));
+         *v = *(struct timeval *) ptr;
+         target->v_ptr = v;
+         return sizeof(struct timeval *);
+      }
+      case adiak_version:
+      case adiak_string:
+      case adiak_catstring:
+      case adiak_path:
+         target->v_ptr = strdup(*((void **) ptr));
+         return sizeof(char *);
+      case adiak_range:
+      case adiak_set:
+      case adiak_list:
+      case adiak_tuple:
+         newvalues = (adiak_value_t *) malloc(sizeof(adiak_value_t) * datatype->num_elements);
+         for (i = 0; i < datatype->num_elements; i++) {
+            unsigned char *array_base = (unsigned char *) ptr;
+            result = copy_value(newvalues+i, datatype->subtype[type_index], array_base + bytes_read);
+            if (result == -1)
+               return -1;
+            bytes_read += result;
+            if (datatype->dtype == adiak_tuple)
+               type_index++;
+         }
+         target->v_ptr = newvalues;
+         return sizeof(void*);
+   }
+   return -1;
+}
+
+static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_start, int typestr_end,
+                                       va_list *ap, int *new_typestr_start)
+{
+   adiak_datatype_t *t = NULL;
+   int cur = typestr_start;
+   int end_brace, i, is_long = 0;
+   
+   if (!typestr)
+      goto error;
+   if (typestr_start == typestr_end)
+      goto error;
+
+   while (typestr[cur] == ' ' || typestr[cur] == '\t' || typestr[cur] == '\n' || typestr[cur] == ',')
+      cur++;
+
+   if (strchr("[{<(", typestr[cur])) {
+      t = (adiak_datatype_t *) malloc(sizeof(adiak_datatype_t));
+      memset(t, 0, sizeof(*t));
+   }
+   if (typestr[cur] == '{' || typestr[cur] == '[') {
+      end_brace = find_end_brace(typestr, typestr[cur] == '{' ? '}' : ']',
+                                 cur, typestr_end);
+      if (end_brace == -1)
+         goto error;
+      t->num_elements = va_arg(*ap, int);
+      t->dtype = typestr[cur] == '{' ? adiak_list : adiak_set;
+      t->numerical = adiak_categorical;
+      t->num_subtypes = 1;
+      t->subtype = (adiak_datatype_t **) malloc(sizeof(adiak_datatype_t *));
+      t->subtype[0] = parse_typestr_helper(typestr, cur+1, end_brace, ap, &cur);
+      if (t->subtype[0] == NULL)
+         goto error;
+      *new_typestr_start = end_brace+1;
+      goto done;
+   }
+   else if (typestr[cur] == '<') {
+      end_brace = find_end_brace(typestr, '>', cur, typestr_end);
+      if (end_brace == -1)
+         goto error;
+      t->dtype = adiak_range;
+      t->num_elements = 2;
+      t->numerical = adiak_categorical;
+      t->num_subtypes = 1;
+      t->subtype = (adiak_datatype_t **) malloc(sizeof(adiak_datatype_t *));
+      t->subtype[0] = parse_typestr_helper(typestr, cur+1, end_brace, ap, &cur);
+      if (t->subtype[0] == NULL)
+         goto error;
+      *new_typestr_start = end_brace+1;      
+      goto done;
+   }
+   else if (typestr[cur] == '(') {
+      end_brace = find_end_brace(typestr, ')', cur, typestr_end);
+      if (end_brace == -1)
+         goto error;
+      t->dtype = adiak_tuple;
+      t->numerical = adiak_categorical;
+      t->num_subtypes = t->num_elements = va_arg(*ap, int);
+      t->subtype = (adiak_datatype_t **) malloc(sizeof(adiak_datatype_t *) * t->num_subtypes);
+      memset(t->subtype, 0, sizeof(adiak_datatype_t *) * t->num_subtypes);
+      cur++;
+      for (i = 0; i < t->num_subtypes; i++) {
+         t->subtype[i] = parse_typestr_helper(typestr, cur, end_brace, ap, &cur);
+         if (!t->subtype[i])
+            goto error;
+      }
+   }
+   else if (typestr[cur] == '%') {
+      cur++;
+      if (typestr[cur] == 'l') {
+         is_long = 1;
+         cur++;
+      }
+      switch (typestr[cur]) {
+         case 'd':
+            t = is_long ? &base_long : &base_int;
+            break;
+         case 'u':
+            t = is_long ? &base_ulong : &base_uint;
+            break;
+         case 'f':
+            t = &base_double;
+            break;
+         case 'D':
+            t = &base_date;
+            break;
+         case 't':
+            t = &base_timeval;
+            break;
+         case 'v':
+            t = &base_version;
+            break;
+         case 's':
+            t = &base_string;
+            break;
+         case 'r':
+            t = &base_catstring;
+            break;
+         case 'p':
+            t = &base_path;
+            break;
+         default:
+            goto error;
+      }
+      cur++;
+      *new_typestr_start = cur;
+      goto done;
+   }
+
+  done:
+   return t;
+  error:
+   if (t)
+      free_adiak_type(t);
+   return NULL;
 }
 
 #if defined(MPI_VERSION)
@@ -919,3 +1025,4 @@ static int gethostlist(char **hostlist, int *num_hosts, int *max_hostlen)
    return 0;
 }
 #endif
+

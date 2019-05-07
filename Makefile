@@ -10,9 +10,6 @@ default: testapp testappcxx
 adiak.o: adiak.c adiak.h adiak_tool.h
 	$(CC) -o $@ $(CFLAGS) -c $<
 
-adiakcxx.o: adiak.cpp adiak.hpp
-	$(CXX) -o $@ $(CXXFLAGS) -c $<
-
 testapp.o: testapp.c adiak.h
 	$(CC) -o $@ $(CFLAGS) -c $<
 
@@ -40,8 +37,8 @@ libtest3.so: testlib3.o adiak.o
 testapp: testapp.o adiak.o libtest1.so libtest2.so libtest3.so
 	$(CC) -o $@ $(LDFLAGS) -L. -Wl,-rpath,$(PWD) -ltest1 -ltest2 -ltest3 -ldl testapp.o adiak.o
 
-testappcxx: testappcxx.o adiak.o adiakcxx.o libtest1.so libtest2.so libtest3.so
-	$(CXX) -o $@ $(LDFLAGS) -L. -Wl,-rpath,$(PWD) -ltest1 -ltest2 -ltest3 -ldl testappcxx.o adiak.o adiakcxx.o
+testappcxx: testappcxx.o adiak.o libtest1.so libtest2.so libtest3.so
+	$(CXX) -o $@ $(LDFLAGS) -L. -Wl,-rpath,$(PWD) -ltest1 -ltest2 -ltest3 -ldl testappcxx.o adiak.o
 
 clean:
-	rm -f testapp libtest?.so testlib?.o testapp.o adiak.o adiakcxx.o testapp.cxx testappcxx.o testappcxx
+	rm -f testapp libtest?.so testlib?.o testapp.o adiak.o testapp.cxx testappcxx.o testappcxx
