@@ -31,6 +31,14 @@ namespace adiak
       operator std::string() const { return v; }
       typedef std::string adiak_underlying_type;      
    };
+
+   //A categorical string, which functions like a string but flags it as unsortable.
+   struct catstring {
+      std::string v;
+      catstring(std::string cs) { v = cs; }
+      operator std::string() const { return v; }
+      typedef std::string adiak_underlying_type;
+   };     
 }
 
 #include "adiak_internal.hpp"
@@ -106,11 +114,11 @@ namespace adiak
     **/
    template <typename T>
    bool value(std::string name, T value, adiak_category_t category = adiak_general) {
-      adiak_datatype_t *datatype = adiak::internal::make_type<T>::create();
+      adiak_datatype_t *datatype = adiak::internal::parse<T>::make_type();
       if (!datatype)
          return false;      
       adiak_value_t *avalue = (adiak_value_t *) malloc(sizeof(adiak_value_t));
-      bool result = adiak::internal::make_value(value, avalue, datatype);
+      bool result = adiak::internal::parse<T>::make_value(value, avalue, datatype);
       if (!result)
          return false;
       return adiak_raw_namevalue(name.c_str(), category, avalue, datatype) == 0;
@@ -122,14 +130,6 @@ namespace adiak
       //return adiak::internal::handle_container(name, valuea, valueb, datatype);
       return true;
    }
-
-   //A categorical string, which functions like a string but flags it as unsortable.
-   struct catstring {
-      std::string v;
-      catstring(std::string cs) { v = cs; }
-      operator std::string() const { return v; }
-      typedef std::string adiak_underlying_type;
-   };     
 
 #if defined(MPI_VERSION)
    inline void init(MPI_Comm *communicator) {

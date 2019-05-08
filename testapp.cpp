@@ -17,14 +17,18 @@ using namespace std;
 int main(int argc, char *argv[])
 {
    bool result;
+#if defined(USE_MPI)
    MPI_Comm world = MPI_COMM_WORLD;
+#endif
    struct timeval start, end;
 
    gettimeofday(&start, NULL);
-
+#if defined(USE_MPI)
    MPI_Init(&argc, &argv);
-   
    adiak::init(&world);
+#else
+   adiak::init();
+#endif
 
    vector<double> grid;
    grid.push_back(4.5);
@@ -56,12 +60,15 @@ int main(int argc, char *argv[])
    ap_c.push_back(4.0);
    ap_c.push_back(9.0);
    tuple<vector<string>, vector<double>, vector<double> > antipoints = make_tuple(ap_a, ap_b, ap_c);
-
+   const tuple<vector<string>, vector<double>, vector<double> > &antipoints_r = antipoints;
 
    result = adiak::value("points", points);
    if (!result) printf("return: %d\n\n", result);
 
-   result = adiak::value("antipoints", antipoints);
+   result = adiak::value("antipoints", antipoints_r);
+   if (!result) printf("return: %d\n\n", result);
+   
+   result = adiak::value("antipoints_r", antipoints_r);
    if (!result) printf("return: %d\n\n", result);
 
    result = adiak::value("str", std::string("s"));
@@ -145,6 +152,8 @@ int main(int argc, char *argv[])
    if (!result) printf("return: %d\n\n", result);
    
    adiak::fini();
+#if defined(USE_MPI)   
    MPI_Finalize();
+#endif
    return 0;
 }

@@ -1,8 +1,8 @@
 .PHONY: default
 
-CC = mpicc
-CXX = mpicxx
-CFLAGS = -fPIC -g -Wall -DUSE_MPI
+CC = pgcc-19.1
+CXX = /usr/tce/packages/pgi/pgi-19.1/bin/pgc++
+CFLAGS = -fPIC -g
 CXXFLAGS = $(CFLAGS) -std=c++11
 
 default: testapp testappcxx

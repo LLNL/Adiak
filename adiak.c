@@ -1,6 +1,11 @@
 #define _GNU_SOURCE
+#include <stdint.h>
+//typedef struct { long apart; long bpart } my_int128_t;
+//#define __int128_t my_int128_t
+
 #include "adiak.h"
 #include "adiak_tool.h"
+#include <stdint.h>
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -11,11 +16,11 @@
 #include <pwd.h>
 #include <limits.h>
 #include <errno.h>
+#include <link.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <sys/time.h>
-#include <link.h>
 
 typedef struct adiak_tool_t {
    //Below fields are present in v1

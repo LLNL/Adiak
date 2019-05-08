@@ -58,6 +58,8 @@ typedef struct adiak_datatype_t {
 typedef union  {
    signed long v_long;
    int v_int;
+   short v_short;
+   char v_char;
    double v_double;
    void *v_ptr;
 } adiak_value_t;
