@@ -53,7 +53,7 @@ int adiak_user()
    if (firstcomma)
       *firstcomma = '\0';
 
-   adiak_value("user", adiak_general, "%s", user);
+   adiak_namevalue("user", adiak_general, "%s", user);
    return 0;
 }
 
@@ -65,7 +65,7 @@ int adiak_uid()
    if (!p)
       return -1;
    
-   adiak_value("uid", adiak_general, "%s", p->pw_name);
+   adiak_namevalue("uid", adiak_general, "%s", p->pw_name);
    return 0;
 }
 
@@ -79,7 +79,7 @@ int adiak_hostname()
       return -1;
    hostname[sizeof(hostname)-1] = '\0';
 
-   return adiak_value("hostname", adiak_general, "%s", hostname);
+   return adiak_namevalue("hostname", adiak_general, "%s", hostname);
 }
 
 int adiak_clustername()
@@ -105,7 +105,7 @@ int adiak_clustername()
    }
    clustername[i] = '\0';
 
-   return adiak_value("cluster", adiak_general, "%s", clustername);
+   return adiak_namevalue("cluster", adiak_general, "%s", clustername);
 }
 
 int adiak_measure_times(int systime, int cputime)
@@ -139,7 +139,7 @@ int adiak_measure_times(int systime, int cputime)
    struct timeval *v = (struct timeval *) malloc(sizeof(struct timeval));
    v->tv_sec = tics / tics_per_sec;
    v->tv_usec = (tics % tics_per_sec) * (1000000 / tics_per_sec);
-   return adiak_value(name, adiak_performance, "%t", v);
+   return adiak_namevalue(name, adiak_performance, "%t", v);
 }
 
 #if defined(MPI_VERSION)
@@ -296,7 +296,7 @@ int adiak_hostlist()
    for (i = 0; i < num_hosts; i++)
       hostlist_array[i] = hostlist + (i * max_hostlen);
 
-   result = adiak_value("hostlist", adiak_general, "[%s]", num_hosts, hostlist_array);
+   result = adiak_namevalue("hostlist", adiak_general, "[%s]", num_hosts, hostlist_array);
    if (result == -1)
       goto error;
 

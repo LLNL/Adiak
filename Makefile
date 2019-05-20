@@ -1,8 +1,8 @@
 .PHONY: default
 
-CC = mpicc
-CXX = mpicxx
-CFLAGS = -fPIC -g -Wall -DUSE_MPI
+CC = pgcc-19.1
+CXX = /usr/tce/packages/pgi/pgi-19.1/bin/pgc++
+CFLAGS = -fPIC -g
 CXXFLAGS = $(CFLAGS) -std=c++11
 
 SYSOBJ = sys_posix_common.o sys_linux.o
@@ -18,9 +18,6 @@ sys_posix_common.o: sys_posix_common.c adiak.h adiak_internal.h
 
 sys_linux.o: sys_linux.c adiak.h adiak_internal.h
 	$(CC) -o $@ $(CFLAGS) -c $<
-
-adiakcxx.o: adiak.cpp adiak.hpp
-	$(CXX) -o $@ $(CXXFLAGS) -c $<
 
 testapp.o: testapp.c adiak.h
 	$(CC) -o $@ $(CFLAGS) -c $<
@@ -49,8 +46,9 @@ libtest3.so: testlib3.o adiak.o adiak.o $(SYSOBJ)
 testapp: testapp.o libtest1.so libtest2.so libtest3.so
 	$(CC) -o $@ $(LDFLAGS) -L. -Wl,-rpath,$(PWD) -ltest1 -ltest2 -ltest3 -ldl testapp.o adiak.o $(SYSOBJ)
 
-testappcxx: testappcxx.o adiakcxx.o libtest1.so libtest2.so libtest3.so
-	$(CXX) -o $@ $(LDFLAGS) -L. -Wl,-rpath,$(PWD) -ltest1 -ltest2 -ltest3 -ldl testappcxx.o adiak.o adiakcxx.o $(SYSOBJ)
+
+testappcxx: testappcxx.o adiak.o libtest1.so libtest2.so libtest3.so
+	$(CXX) -o $@ $(LDFLAGS) -L. -Wl,-rpath,$(PWD) -ltest1 -ltest2 -ltest3 -ldl testappcxx.o adiak.o $(SYSOBJ)
 
 clean:
-	rm -f testapp libtest?.so testlib?.o testapp.o adiak.o sys_posix_common.o sys_linux.o sys_posix.o adiakcxx.o testapp.cxx testappcxx.o testappcxx
+	rm -f testapp libtest?.so testlib?.o testapp.o adiak.o adiakcxx.o testapp.cxx testappcxx.o $(SYSOBJ) testappcxx 

@@ -6,8 +6,10 @@
 #include <link.h>
 
 #include <sys/stat.h>
+#include <sys/time.h>
 
 #include <time.h>
+#include <unistd.h>
 
 #include <errno.h>
 #include <stdlib.h>
@@ -38,7 +40,7 @@ int adiak_launchdate()
    struct timeval stime = starttime();
    if (stime.tv_sec == 0 && stime.tv_usec == 0)
       return -1;
-   adiak_value("date", adiak_general, "%D", stime.tv_sec);
+   adiak_namevalue("date", adiak_general, "%D", stime.tv_sec);
    return 0;
 }
 
@@ -57,7 +59,7 @@ int adiak_executable()
       filepart = path;
    else
       filepart++;
-   adiak_value("executable", adiak_general, "%s", filepart);
+   adiak_namevalue("executable", adiak_general, "%s", filepart);
    return 0;
 }
 
@@ -71,7 +73,7 @@ int adiak_executablepath()
    if (!result)
       return -1;
    
-   adiak_value("executablepath", adiak_general, "%p", strdup(path));
+   adiak_namevalue("executablepath", adiak_general, "%p", strdup(path));
    return 0;
 }
 
@@ -105,7 +107,7 @@ int adiak_libraries()
    linfo.cur = 0;
    dl_iterate_phdr(get_library_name, &linfo);
 
-   result = adiak_value("libraries", adiak_general, "[%p]", linfo.cur, linfo.names);
+   result = adiak_namevalue("libraries", adiak_general, "[%p]", linfo.names, linfo.cur);
    free(linfo.names);
    return result;
 }
@@ -147,7 +149,7 @@ int adiak_cmdline()
           myargv[j++] = buffer + i + 1;
    }
           
-   result = adiak_value("cmdline", adiak_general, "[%s]", myargc, myargv);
+   result = adiak_namevalue("cmdline", adiak_general, "[%s]", myargv, myargc);
    if (result == -1)
       return -1;
 
@@ -185,7 +187,7 @@ int adiak_measure_walltime()
    else
       diff->tv_usec = etime.tv_usec - stime.tv_usec;
    
-   return adiak_value("walltime", adiak_performance, "%t", diff);   
+   return adiak_namevalue("walltime", adiak_performance, "%t", diff);   
 }
 
 adiak_t* adiak_sys_init()
