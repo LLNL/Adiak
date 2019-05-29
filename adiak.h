@@ -5,11 +5,11 @@
 #include <mpi.h>
 #endif
 
+#include <stddef.h>
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-   
-#include <unistd.h>
 
 #define ADIAK_VERSION 1
 
