@@ -43,8 +43,9 @@ typedef enum {
 typedef enum {
    adiak_category_unset = 0,
    adiak_category_all,
-   adiak_general,    /* General information about runs */
-   adiak_performance /* Information about performance */
+   adiak_general,     /* General information about runs */
+   adiak_performance, /* Information about performance */
+   adiak_control,     /* Control and meta commands (e.g., flush) */
 } adiak_category_t;
 
 typedef struct adiak_datatype_t {
@@ -126,8 +127,10 @@ int adiak_cputime(); /* Makes a 'cputime' name/val with the timeval of how much 
 
 int adiak_job_size(); /* Makes a 'jobsize' name/val with the number of ranks in an MPI job */
 int adiak_hostlist(); /* Makes a 'hostlist' name/val with the set of hostnames in this MPI job */
-int adiak_mpitime(); /* Makes an 'mpitime' name/val with the timeval of how much time was spent in MPI */
 
+int adiak_flush(const char *location);
+int adiak_clean();
+   
 adiak_numerical_t adiak_numerical_from_type(adiak_type_t dtype);
 #endif
 

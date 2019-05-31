@@ -18,9 +18,9 @@ typedef struct {
 #endif
 } adiak_t;
 
-adiak_t* adiak_sys_init();
+extern adiak_t *global_adiak;
 
-adiak_t* adiak_globals();
+adiak_t* adiak_sys_init();
 
 int adiak_measure_times(int systime, int cputime);
 

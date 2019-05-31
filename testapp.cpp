@@ -14,21 +14,10 @@ extern "C" {
 
 using namespace std;
 
-int main(int argc, char *argv[])
+void dowork(struct timeval start)
 {
    bool result;
-#if defined(USE_MPI)
-   MPI_Comm world = MPI_COMM_WORLD;
-#endif
-   struct timeval start, end;
-
-   gettimeofday(&start, NULL);
-#if defined(USE_MPI)
-   MPI_Init(&argc, &argv);
-   adiak::init(&world);
-#else
-   adiak::init();
-#endif
+   struct timeval end;
 
    vector<double> grid;
    grid.push_back(4.5);
@@ -134,12 +123,14 @@ int main(int argc, char *argv[])
    result = adiak::systime();
    if (!result) printf("return: %d\n\n", result);   
 
+#if defined(USE_MPI)
    result = adiak::jobsize();
    if (!result) printf("return: %d\n\n", result);
 
    result = adiak::hostlist();
    if (!result) printf("return: %d\n\n", result);
-
+#endif
+   
    gettimeofday(&end, NULL);
    result = adiak::value("computetime", &start, &end);
    if (!result) printf("return: %d\n\n", result);
@@ -149,9 +140,30 @@ int main(int argc, char *argv[])
    floatar[1] = 0.02f;
    floatar[2] = 0.03f;
    result = adiak::value("floats", floatar);
-   if (!result) printf("return: %d\n\n", result);
+   if (!result) printf("return: %d\n\n", result);   
+}
+
+int main(int argc, char *argv[])
+{
+#if defined(USE_MPI)
+   MPI_Comm world = MPI_COMM_WORLD;
+#endif
+   struct timeval start;
+
+   dowork(start);
+   dowork(start);
+   
+   gettimeofday(&start, NULL);
+#if defined(USE_MPI)
+   MPI_Init(&argc, &argv);
+   adiak::init(&world);
+#else
+   adiak::init();
+#endif
+
    
    adiak::fini();
+   adiak::clean();
 #if defined(USE_MPI)   
    MPI_Finalize();
 #endif

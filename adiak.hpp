@@ -221,5 +221,13 @@ namespace adiak
    // Only works if adiak_init was called with a valid MPI communicator.   
    inline bool hostlist() {
       return adiak_hostlist() == 0;
-   }   
+   }
+
+   inline bool flush(std::string output) {
+      return adiak_flush(output.c_str()) == 0;
+   }
+
+   inline bool clean() {
+      return adiak_clean() == 0;
+   }
 }

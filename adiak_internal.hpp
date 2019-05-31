@@ -77,7 +77,7 @@ namespace adiak
       };
       template<> struct element_type<std::string> {
          static const adiak_type_t dtype = adiak_string;
-         static void set(adiak_value_t &v, std::string p) { v.v_ptr = strdup(p.c_str()); }
+         static void set(adiak_value_t &v, const std::string &p) { v.v_ptr = strdup(p.c_str()); }
       };
       template<> struct element_type<struct timeval*> {
          static const adiak_type_t dtype = adiak_timeval;

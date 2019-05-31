@@ -4,6 +4,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <assert.h>
+#include <string.h>
 
 #define XSTR(S) #S
 #define STR(S) XSTR(S)
@@ -111,16 +112,28 @@ static void print_value(adiak_value_t *val, adiak_datatype_t *t)
    }
 }
 
-static void cb(const char *name, adiak_category_t category, adiak_value_t *value, adiak_datatype_t *t, void *opaque_value)
+static void print_nameval(const char *name, adiak_category_t category, adiak_value_t *value, adiak_datatype_t *t, void *opaque_value)
 {
-   printf("%s: ", name);
+   printf("%s - %s: ", STR(TOOLNAME), name);
    print_value(value, t);
    printf("\n");
 }
 
+static void print_on_flush(const char *name, adiak_category_t category, adiak_value_t *value, adiak_datatype_t *t, void *opaque_value)
+{
+   if (strcmp(name, "fini") != 0)
+      return;
+   adiak_list_namevals(1, adiak_category_all, print_nameval, NULL);
+}
+
+
 static void onload() __attribute__((constructor));
 static void onload()
 {
-   adiak_register_cb(1, adiak_category_all, cb, 0, NULL);
+   if (strcmp(STR(TOOLNAME), "TOOL3") == 0)
+      adiak_register_cb(1, adiak_control, print_on_flush, 0, NULL);
+   else
+      adiak_register_cb(1, adiak_category_all, print_nameval, 0, NULL);
 }
+      
 

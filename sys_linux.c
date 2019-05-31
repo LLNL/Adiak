@@ -1,7 +1,8 @@
+#define _GNU_SOURCE
+
 #include "adiak.h"
 #include "adiak_internal.h"
 
-#define _GNU_SOURCE
 #include <dlfcn.h>
 #include <link.h>
 
@@ -73,7 +74,7 @@ int adiak_executablepath()
    if (!result)
       return -1;
    
-   adiak_namevalue("executablepath", adiak_general, "%p", strdup(path));
+   adiak_namevalue("executablepath", adiak_general, "%p", path);
    return 0;
 }
 
@@ -93,7 +94,7 @@ static int get_library_name(struct dl_phdr_info *info, size_t size, void *data) 
    lib_info_t *linfo = (lib_info_t *) data;
    if (!info->dlpi_name || !*info->dlpi_name)
       return 0;
-   linfo->names[linfo->cur++] = strdup(info->dlpi_name);
+   linfo->names[linfo->cur++] = (char *) info->dlpi_name;
    return 0;
 }
 
@@ -167,7 +168,7 @@ int adiak_cmdline()
 int adiak_measure_walltime()
 {
    struct timeval stime;
-   struct timeval etime, *diff;
+   struct timeval etime, diff;
    int result;
 
    stime = starttime();
@@ -178,16 +179,15 @@ int adiak_measure_walltime()
    if (result == -1)
       return -1;
 
-   diff = malloc(sizeof(struct timeval));
-   diff->tv_sec = etime.tv_sec - stime.tv_sec;
+   diff.tv_sec = etime.tv_sec - stime.tv_sec;
    if (etime.tv_usec < stime.tv_usec) {
-      diff->tv_usec = 1000000 + etime.tv_usec - stime.tv_usec;
-      diff->tv_sec--;
+      diff.tv_usec = 1000000 + etime.tv_usec - stime.tv_usec;
+      diff.tv_sec--;
    }
    else
-      diff->tv_usec = etime.tv_usec - stime.tv_usec;
+      diff.tv_usec = etime.tv_usec - stime.tv_usec;
    
-   return adiak_namevalue("walltime", adiak_performance, "%t", diff);   
+   return adiak_namevalue("walltime", adiak_performance, "%t", &diff);
 }
 
 adiak_t* adiak_sys_init()

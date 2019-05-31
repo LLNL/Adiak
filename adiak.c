@@ -21,7 +21,16 @@ typedef struct adiak_tool_t {
    adiak_category_t category;
 } adiak_tool_t;
 
-static adiak_t *global_adiak;
+typedef struct record_list_t {
+   const char *name;
+   adiak_category_t category;
+   adiak_value_t *value;
+   adiak_datatype_t *dtype;
+   struct record_list_t *list_next;
+   struct record_list_t *hash_next;
+} record_list_t;
+
+adiak_t *global_adiak;
 static adiak_tool_t **tool_list;
 
 static int measure_adiak_walltime;
@@ -42,25 +51,29 @@ static adiak_datatype_t base_path = { adiak_path, adiak_categorical, 0, 0, NULL 
 
 static void adiak_common_init();
 
-static int format_match(const char *users, const char *reference);
-static int adiak_nameval(const char *name, const void *buffer, size_t buffer_size, size_t elem_size, adiak_datatype_t valtype);
-
 static void adiak_register(int adiak_version, adiak_category_t category,
                            adiak_nameval_cb_t nv,
                            int report_on_all_ranks, void *opaque_val);
-
-adiak_t* adiak_globals()
-{
-   return global_adiak;
-}
 
 static int find_end_brace(const char *typestr, char endchar, int typestr_start, int typestr_end);
 static adiak_datatype_t *parse_typestr(const char *typestr, va_list *ap);
 static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_start, int typestr_end,
                                               va_list *ap, int *new_typestr_start);
 static void free_adiak_type(adiak_datatype_t *t);
+static void free_adiak_value(adiak_datatype_t *t, adiak_value_t *v);
+static void free_adiak_value_worker(adiak_datatype_t *t, adiak_value_t *v);
+
 static adiak_type_t toplevel_type(const char *typestr);
 static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *ptr);
+
+static void record_nameval(const char *name, adiak_category_t category,
+                           adiak_value_t *value, adiak_datatype_t *dtype);
+
+#define RECORD_HASH_SIZE 128
+static record_list_t *record_list;
+static record_list_t *record_list_end;
+static record_list_t *record_hash[RECORD_HASH_SIZE];
+
 
 adiak_datatype_t *adiak_new_datatype(const char *typestr, ...)
 {
@@ -75,6 +88,10 @@ adiak_datatype_t *adiak_new_datatype(const char *typestr, ...)
 int adiak_raw_namevalue(const char *name, adiak_category_t category, adiak_value_t *value, adiak_datatype_t *type)
 {
    adiak_tool_t *tool;
+
+   if (category != adiak_control)
+      record_nameval(name, category, value, type);
+   
    for (tool = *tool_list; tool != NULL; tool = tool->next) {
       if (!tool->report_on_all_ranks && !global_adiak->reportable_rank)
          continue;
@@ -184,6 +201,16 @@ void adiak_register_cb(int adiak_version, adiak_category_t category,
    adiak_register(adiak_version, category, nv, report_on_all_ranks, opaque_val);
 }
 
+void adiak_list_namevals(int adiak_version, adiak_category_t category, adiak_nameval_cb_t nv, void *opaque_val)
+{
+   record_list_t *i;
+   for (i = record_list; i != NULL; i = i->list_next) {
+      if (category != adiak_category_all && i->category != category)
+         continue;
+      nv(i->name, i->category, i->value, i->dtype, opaque_val);
+   }
+}
+
 int adiak_walltime()
 {
    measure_adiak_walltime = 1;
@@ -216,17 +243,6 @@ int adiak_job_size()
 #endif
 }
 
-int adiak_mpitime()
-{
-#if defined(MPI_VERSION)
-   if (!global_adiak->use_mpi)
-      return -1;   
-   return adiak_request(mpitime, 1);
-#else
-   return -1;
-#endif
-}
-
 #if defined(MPI_VERSION)
 void adiak_init(MPI_Comm *communicator)
 {
@@ -249,12 +265,16 @@ void adiak_init(void *unused)
 
 void adiak_fini()
 {
+   adiak_value_t val;
    if (measure_adiak_cputime)
       adiak_measure_times(0, 1);
    if (measure_adiak_systime)
       adiak_measure_times(1, 0);
    if (measure_adiak_walltime)
       adiak_measure_walltime();
+
+   val.v_int = 0;
+   adiak_raw_namevalue("fini", adiak_control, &val, &base_int);   
 }
 
 static void adiak_common_init()
@@ -312,6 +332,7 @@ static int find_end_brace(const char *typestr, char endchar, int typestr_start, 
    }
    return -1;      
 }
+
 static adiak_datatype_t *parse_typestr(const char *typestr, va_list *ap)
 {
    int end = 0;
@@ -403,7 +424,53 @@ static void free_adiak_type(adiak_datatype_t *t)
    for (i = 0; i < t->num_subtypes; i++) {
       free_adiak_type(t->subtype[i]);
    }
+   if (t->num_subtypes)
+      free(t->subtype);
    free(t);
+}
+
+static void free_adiak_value_worker(adiak_datatype_t *t, adiak_value_t *v) {
+   int i;
+   adiak_value_t *values;
+   
+   switch (t->dtype) {
+      case adiak_type_unset:
+      case adiak_long:
+      case adiak_ulong:
+      case adiak_int:
+      case adiak_uint:
+      case adiak_double:
+      case adiak_date:
+         break;
+      case adiak_timeval:
+      case adiak_version:
+      case adiak_string:
+      case adiak_catstring:
+      case adiak_path:
+         free(v->v_ptr);
+         break;
+      case adiak_range:
+      case adiak_set:
+      case adiak_list:
+         values = (adiak_value_t *) v->v_ptr;
+         for (i = 0; i < t->num_elements; i++) {
+            free_adiak_value_worker(t->subtype[0], values+i);
+         }
+         free(values);
+         break;
+      case adiak_tuple:
+         values = (adiak_value_t *) v->v_ptr;
+         for (i = 0; i < t->num_elements; i++) {
+            free_adiak_value_worker(t->subtype[i], values+i);
+         }
+         free(values);
+         break;
+   }
+}
+
+static void free_adiak_value(adiak_datatype_t *t, adiak_value_t *v) {
+   free_adiak_value_worker(t, v);
+   free(v);
 }
 
 static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *ptr) {
@@ -571,4 +638,84 @@ static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_s
    if (t)
       free_adiak_type(t);
    return NULL;
+}
+
+static unsigned long strhash(const char *str) {
+    unsigned long hash = 5381;
+    int c;
+    while ((c = *str++))
+        hash = ((hash << 5) + hash) + c;
+    return hash;   
+}
+
+static void record_nameval(const char *name, adiak_category_t category,
+                           adiak_value_t *value, adiak_datatype_t *dtype)
+{
+   record_list_t *addrecord = NULL, *i;
+   unsigned long hashval;
+   int newrecord = 0;
+
+   hashval = strhash(name) % RECORD_HASH_SIZE;
+   for (i = record_hash[hashval]; i != NULL; i = i->hash_next) {
+      if (strcmp(i->name, name) == 0) {
+         addrecord = i;
+         break;
+      }
+   }
+
+   if (!addrecord) {
+      addrecord = (record_list_t *) malloc(sizeof(record_list_t));
+      newrecord = 1;
+   }
+   else {
+      free_adiak_value(addrecord->dtype, addrecord->value);
+      free_adiak_type(addrecord->dtype);
+   }
+   
+   addrecord->category = category;
+   addrecord->value = value;
+   addrecord->dtype = dtype;
+
+   if (!newrecord)
+      return;
+   
+   addrecord->name = (const char *) strdup(name);
+   addrecord->list_next = NULL;
+   if (!record_list) {
+      record_list = record_list_end = addrecord;
+   }
+   else {
+      record_list_end->list_next = addrecord;
+      record_list_end = addrecord;
+   }
+
+   addrecord->hash_next = record_hash[hashval];
+   record_hash[hashval] = addrecord;
+}
+
+int adiak_flush(const char *location)
+{
+   adiak_value_t val;
+   val.v_ptr = (void *) location;
+   return adiak_raw_namevalue("flush", adiak_control, &val, &base_path);
+}
+
+int adiak_clean()
+{
+   adiak_value_t val;
+   record_list_t *i, *next;
+   int result;
+   
+   val.v_int = 0;
+   result = adiak_raw_namevalue("clean", adiak_control, &val, &base_int);
+   for (i = record_list; i != NULL; i = next) {
+      free_adiak_value(i->dtype, i->value);
+      free_adiak_type(i->dtype);
+      free((void *) i->name);
+      next = i->list_next;
+      free(i);
+   }
+   memset(record_hash, 0, sizeof(record_hash));
+   record_list = record_list_end = NULL;
+   return result;
 }

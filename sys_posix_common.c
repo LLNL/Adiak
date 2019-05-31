@@ -136,10 +136,10 @@ int adiak_measure_times(int systime, int cputime)
       tics_per_sec = 100;
    }
       
-   struct timeval *v = (struct timeval *) malloc(sizeof(struct timeval));
-   v->tv_sec = tics / tics_per_sec;
-   v->tv_usec = (tics % tics_per_sec) * (1000000 / tics_per_sec);
-   return adiak_namevalue(name, adiak_performance, "%t", v);
+   struct timeval v;
+   v.tv_sec = tics / tics_per_sec;
+   v.tv_usec = (tics % tics_per_sec) * (1000000 / tics_per_sec);
+   return adiak_namevalue(name, adiak_performance, "%t", &v);
 }
 
 #if defined(MPI_VERSION)
@@ -160,7 +160,7 @@ static int get_unique_host(char *name, int global_rank)
 {
    int size, rank, color;
    int set_oldcomm = 0;
-   MPI_Comm adiak_communicator = adiak_globals()->adiak_communicator;
+   MPI_Comm adiak_communicator = global_adiak->adiak_communicator;
    MPI_Comm newcomm = MPI_COMM_NULL, oldcomm = adiak_communicator;
    char oname[MAX_HOSTNAME_LEN];
    int result, err_ret = -1;
@@ -229,7 +229,6 @@ static int gethostlist(char **hostlist, int *num_hosts, int *max_hostlen)
    char name[MAX_HOSTNAME_LEN], *firstdot;
    int namelen, hostlist_size;
 
-   adiak_t* global_adiak = adiak_globals();
    MPI_Comm adiak_communicator = global_adiak->adiak_communicator;
 
    *hostlist = NULL;
@@ -282,7 +281,7 @@ int adiak_hostlist()
    char **hostlist_array = NULL;
    int err_ret = -1;
 
-   if (!adiak_globals()->use_mpi)
+   if (!global_adiak->use_mpi)
       return -1;
    
    result = gethostlist(&hostlist, &num_hosts, &max_hostlen);
@@ -296,7 +295,7 @@ int adiak_hostlist()
    for (i = 0; i < num_hosts; i++)
       hostlist_array[i] = hostlist + (i * max_hostlen);
 
-   result = adiak_namevalue("hostlist", adiak_general, "[%s]", num_hosts, hostlist_array);
+   result = adiak_namevalue("hostlist", adiak_general, "[%s]", hostlist_array, num_hosts);
    if (result == -1)
       goto error;
 

@@ -1,8 +1,8 @@
 .PHONY: default
 
-CC = pgcc-19.1
-CXX = /usr/tce/packages/pgi/pgi-19.1/bin/pgc++
-CFLAGS = -fPIC -g
+CC = gcc
+CXX = g++
+CFLAGS = -fPIC -g -Wall
 CXXFLAGS = $(CFLAGS) -std=c++11
 
 SYSOBJ = sys_posix_common.o sys_linux.o
