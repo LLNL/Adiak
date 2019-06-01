@@ -1,149 +1,15 @@
-#include "adiak.h"
-#include "adiak_internal.h"
-
-#include <errno.h>
-#include <pwd.h>
-#include <time.h>
-#include <unistd.h>
-
-#include <sys/types.h>
-#include <sys/times.h>
-#include <sys/time.h>
-
-#include <stdlib.h>
+#include <mpi.h>
 #include <string.h>
+#include <stdlib.h>
+#include "adksys.h"
 
-static struct passwd *get_passwd()
-{
-   static struct passwd pwd;
-   static int found = 0;
-   struct passwd *p;
+#if !defined(USE_MPI)
+#error Building adksys_mpi without USE_MPI defined
+#endif
 
-   if (found == -1)
-      return NULL;
-   if (found)
-      return &pwd;
-
-   p = getpwuid(getuid());
-   if (!p) {
-      found = -1;
-      return NULL;
-   }
-   pwd.pw_name = strdup(p->pw_name);
-   pwd.pw_passwd = NULL;
-   pwd.pw_uid = p->pw_uid;
-   pwd.pw_gid = p->pw_gid;
-   pwd.pw_gecos = strdup(p->pw_gecos);
-   pwd.pw_dir = NULL;
-   pwd.pw_shell = NULL;
-   found = 1;
-   return &pwd;
-}
-
-int adiak_user()
-{
-   struct passwd *p;
-   char *firstcomma, *user;
-  
-   p = get_passwd();
-   if (!p)
-      return -1;
-   user = p->pw_gecos;
-   firstcomma = strchr(user, ',');
-   if (firstcomma)
-      *firstcomma = '\0';
-
-   adiak_namevalue("user", adiak_general, "%s", user);
-   return 0;
-}
-
-int adiak_uid()
-{  
-   struct passwd *p;
-   
-   p = get_passwd();
-   if (!p)
-      return -1;
-   
-   adiak_namevalue("uid", adiak_general, "%s", p->pw_name);
-   return 0;
-}
-
-int adiak_hostname()
-{
-   char hostname[512];
-   int result;
-   
-   result = gethostname(hostname, sizeof(hostname));
-   if (result == -1)
-      return -1;
-   hostname[sizeof(hostname)-1] = '\0';
-
-   return adiak_namevalue("hostname", adiak_general, "%s", hostname);
-}
-
-int adiak_clustername()
-{
-   char hostname[512];
-   char clustername[512];
-   int result;
-   int i = 0;
-   char *c;
-
-   memset(hostname, 0, sizeof(hostname));
-   memset(clustername, 0, sizeof(hostname));   
-   result = gethostname(hostname, sizeof(hostname));
-   if (result == -1)
-      return -1;
-
-   for (c = hostname; *c; c++) {
-      if (*c >= '0' && *c <= '9')
-         continue;
-      if (*c == '.')
-         break;
-      clustername[i++] = *c;
-   }
-   clustername[i] = '\0';
-
-   return adiak_namevalue("cluster", adiak_general, "%s", clustername);
-}
-
-int adiak_measure_times(int systime, int cputime)
-{
-   clock_t tics;
-   struct tms buf;
-   const char *name;
-   long tics_per_sec;
-
-   tics = times(&buf);
-   if (tics == (clock_t) -1)
-      return -1;      
-
-   if (systime) {
-      tics = buf.tms_stime;
-      name = "systime";
-   }
-   else if (cputime) {
-      tics = buf.tms_utime;
-      name = "cputime";
-   }
-   else
-      return -1;
-
-   errno = 0;
-   tics_per_sec = sysconf(_SC_CLK_TCK);
-   if (errno) {
-      tics_per_sec = 100;
-   }
-      
-   struct timeval v;
-   v.tv_sec = tics / tics_per_sec;
-   v.tv_usec = (tics % tics_per_sec) * (1000000 / tics_per_sec);
-   return adiak_namevalue(name, adiak_performance, "%t", &v);
-}
-
-#if defined(MPI_VERSION)
 #define MAX_HOSTNAME_LEN 1025
+
+static MPI_Comm adiak_communicator;
 
 static int hostname_color(char *str, int index)
 {
@@ -156,11 +22,11 @@ static int hostname_color(char *str, int index)
    return hash;
 }
 
+// Return -1 on error, 1 for the lowest rank on each node, and 0 for all other nodes
 static int get_unique_host(char *name, int global_rank)
 {
    int size, rank, color;
    int set_oldcomm = 0;
-   MPI_Comm adiak_communicator = global_adiak->adiak_communicator;
    MPI_Comm newcomm = MPI_COMM_NULL, oldcomm = adiak_communicator;
    char oname[MAX_HOSTNAME_LEN];
    int result, err_ret = -1;
@@ -218,10 +84,10 @@ static int get_unique_host(char *name, int global_rank)
    
    if (err_ret == -1)
       return err_ret;
-   return (rank == 0);
+   return (rank == 0 ? 1 : 0);
 }
 
-static int gethostlist(char **hostlist, int *num_hosts, int *max_hostlen)
+static int gethostlist(char **hostlist, int *num_hosts, int *max_hostlen, int all_ranks)
 {
    int unique_host;
    int rank;
@@ -233,7 +99,7 @@ static int gethostlist(char **hostlist, int *num_hosts, int *max_hostlen)
 
    *hostlist = NULL;
    memset(name, 0, MAX_HOSTNAME_LEN);
-   gethostname(name, MAX_HOSTNAME_LEN-1);
+   adksys_hostname(name, MAX_HOSTNAME_LEN-1);
    firstdot = strchr(name, '.');
    if (firstdot)
       *firstdot = '\0';
@@ -259,7 +125,7 @@ static int gethostlist(char **hostlist, int *num_hosts, int *max_hostlen)
 
    MPI_Comm_free(&hostcomm);
 
-   if (!global_adiak->report_on_all_ranks)
+   if (!all_ranks)
       return 0;
 
    MPI_Bcast(max_hostlen, 1, MPI_INT, 0, adiak_communicator);
@@ -271,20 +137,17 @@ static int gethostlist(char **hostlist, int *num_hosts, int *max_hostlen)
 
    return 0;
 }
-#endif
 
-int adiak_hostlist()
+int adksys_hostlist(char ***out_hostlist_array, int *out_num_hosts, char **out_name_buffer, int all_ranks)
 {
-#if MPI_VERSION
    int num_hosts = 0, max_hostlen = 0, result, i;
    char *hostlist = NULL;
    char **hostlist_array = NULL;
-   int err_ret = -1;
 
    if (!global_adiak->use_mpi)
       return -1;
    
-   result = gethostlist(&hostlist, &num_hosts, &max_hostlen);
+   result = gethostlist(&hostlist, &num_hosts, &max_hostlen, all_ranks);
    if (result == -1)
       goto error;
 
@@ -295,19 +158,42 @@ int adiak_hostlist()
    for (i = 0; i < num_hosts; i++)
       hostlist_array[i] = hostlist + (i * max_hostlen);
 
-   result = adiak_namevalue("hostlist", adiak_general, "[%s]", hostlist_array, num_hosts);
-   if (result == -1)
-      goto error;
-
   done:
-   err_ret = 0;
+   *out_hostlist_array = hostlist_array;
+   *out_num_hosts = num_hosts;
+   *out_name_buffer = hostlist;
+   return 0;
   error:
    if (hostlist)
       free(hostlist);
    if (hostlist_array)
       free(hostlist_array);
-   return err_ret;
-#else
    return -1;
-#endif   
+}
+
+int adksys_jobsize(int *size)
+{
+   int result;
+
+   result = MPI_Comm_size(adiak_communicator, &size);
+   if (result != MPI_COMM_SUCCESS)
+      return -1;
+   return 0;
+}
+
+int adksys_reportable_rank()
+{
+   int result;
+   int rank;
+
+   result = MPI_Comm_rank(adiak_communicator, &rank);
+   if (result != MPI_COMM_SUCCESS)
+      return -1;
+
+   return (rank == 0);
+}
+
+int adksys_mpi_init(MPI_Comm c)
+{
+   adiak_communicator = c;
 }

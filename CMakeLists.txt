@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.8)
-project (Adiak)
+project (Adiak
+         LANGUAGES CXX C
+         VERSION 0.1)
+
+set(BLT_CXX_STD "c++11" CACHE STRING "Version of C++ standard")
 
 if (DEFINED BLT_SOURCE_DIR)
     # Support having a shared BLT outside of the repository if given a BLT_SOURCE_DIR
@@ -21,6 +25,5 @@ endif()
 
 include(${BLT_SOURCE_DIR}/SetupBLT.cmake)
 
-blt_add_library( NAME adiak
-                 HEADERS adiak.h adiak.hpp
-                 SOURCES adiak.c sys_posix_common.c sys_linux.c)
+add_subdirectory(src)
+
