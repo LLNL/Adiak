@@ -1,10 +1,6 @@
 #if !defined(ADIAK_H_)
 #define ADIAK_H_
 
-#if defined(USE_MPI)
-#include <mpi.h>
-#endif
-
 #include <stddef.h>
 
 #if defined(__cplusplus)
@@ -68,14 +64,11 @@ typedef union  {
 static const adiak_datatype_t adiak_unset_datatype = { adiak_type_unset, adiak_numerical_unset, 0, 0, NULL };
 
 /**
- * Initializes the adiak interface.  When run in an MPI job, adiak takes a communicator used for reducing
- * the data passed to it.  This should be called after MPI_Init.
+ * Initializes the adiak interface.  When run in an MPI job, adiak takes a communicator pointer used for reducing
+ * the data passed to it.  This should be called after MPI_Init.  When run without MPI adiak_init can be passed
+ * NULL.
  **/
-#if defined(MPI_VERSION)
-void adiak_init(MPI_Comm *communicator);
-#else
-void adiak_init(void *unused);
-#endif
+void adiak_init(void *mpi_communicator_p);
 
 /**
  * adiak_fini should be called before program exit.  If using MPI, it should be called before

@@ -9,9 +9,19 @@ elseif (UNIX)
 set(adiak_sys_sources adksys_glibc.c adksys_posix.c adksys_procfs.c adksys_unix.c)
 endif ()
 
+if (MPI_FOUND)
+set(adiak_mpi_source adksys_mpi.c)
+add_definitions("-DUSE_MPI")
+set(adiak_mpi_depends mpi)
+else()
+set(adiak_mpi_source)
+set(adiak_mpi_depends)
+endif()
+
 blt_add_library( NAME adiak
                  HEADERS ${adiak_public_headers}
-                 SOURCES adiak.c ${adiak_sys_sources} )
+                 SOURCES adiak.c ${adiak_sys_sources} ${adiak_mpi_source}
+                 DEPENDS_ON ${adiak_mpi_depends})
 
 install(FILES
         ${adiak_public_headers}

@@ -95,8 +95,6 @@ static int gethostlist(char **hostlist, int *num_hosts, int *max_hostlen, int al
    char name[MAX_HOSTNAME_LEN], *firstdot;
    int namelen, hostlist_size;
 
-   MPI_Comm adiak_communicator = global_adiak->adiak_communicator;
-
    *hostlist = NULL;
    memset(name, 0, MAX_HOSTNAME_LEN);
    adksys_hostname(name, MAX_HOSTNAME_LEN-1);
@@ -144,9 +142,6 @@ int adksys_hostlist(char ***out_hostlist_array, int *out_num_hosts, char **out_n
    char *hostlist = NULL;
    char **hostlist_array = NULL;
 
-   if (!global_adiak->use_mpi)
-      return -1;
-   
    result = gethostlist(&hostlist, &num_hosts, &max_hostlen, all_ranks);
    if (result == -1)
       goto error;
@@ -175,8 +170,8 @@ int adksys_jobsize(int *size)
 {
    int result;
 
-   result = MPI_Comm_size(adiak_communicator, &size);
-   if (result != MPI_COMM_SUCCESS)
+   result = MPI_Comm_size(adiak_communicator, size);
+   if (result != MPI_SUCCESS)
       return -1;
    return 0;
 }
@@ -187,13 +182,14 @@ int adksys_reportable_rank()
    int rank;
 
    result = MPI_Comm_rank(adiak_communicator, &rank);
-   if (result != MPI_COMM_SUCCESS)
+   if (result != MPI_SUCCESS)
       return -1;
 
    return (rank == 0);
 }
 
-int adksys_mpi_init(MPI_Comm c)
+int adksys_mpi_init(void *mpi_communicator_p)
 {
-   adiak_communicator = c;
+   adiak_communicator = *((MPI_Comm *) mpi_communicator_p);
+   return 0;
 }

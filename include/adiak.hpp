@@ -131,15 +131,9 @@ namespace adiak
       return true;
    }
 
-#if defined(MPI_VERSION)
-   inline void init(MPI_Comm *communicator) {
-      adiak_init(communicator);
+   inline void init(void *mpi_communicator_p) {
+      adiak_init(mpi_communicator_p);
    }
-#else
-   inline void init() {
-      adiak_init(NULL);
-   }   
-#endif
 
    inline void fini() {
       adiak_fini();

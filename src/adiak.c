@@ -250,18 +250,18 @@ void adiak_init(void *mpi_communicator_p)
 
 #if (USE_MPI)
    if (mpi_communicator_p) {
-      adksys_mpi_init(*((MPI_Comm *) mpi_communicator_p));
+      adksys_mpi_init(mpi_communicator_p);
       adiak_config->reportable_rank = adksys_reportable_rank();
       adiak_config->use_mpi = 1;
    }
    else 
-#else
-   {
+#endif
+   do {
       adiak_config->reportable_rank = 1;
       adiak_config->use_mpi = 0;
       (void) mpi_communicator_p;
-   }
-#endif
+   } while (0);
+
 }
 
 
@@ -771,13 +771,12 @@ int adiak_cmdline()
          myargc++;
    }
 
-   myargv = (char **) malloc(sizeof(char *) * (myargc+2));
+   myargv = (char **) malloc(sizeof(char *) * (myargc+1));
    myargv[j++] = arglist;
    for (i = 0; i < arglist_size; i++) {
       if (arglist[i] == '\0')
          myargv[j++] = arglist + i + 1;
    }
-   myargv[j] = NULL;
 
    result = adiak_namevalue("cmdline", adiak_general, "[%s]", myargv, myargc);
    if (result == -1)
