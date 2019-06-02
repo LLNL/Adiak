@@ -9,4 +9,6 @@ void adiak_register_cb(int adiak_version, adiak_category_t category, adiak_namev
 
 void adiak_list_namevals(int adiak_version, adiak_category_t category, adiak_nameval_cb_t nv, void *opaque_val);
 
+char *adiak_type_to_string(adiak_datatype_t *t, int long_form);
+   
 #endif

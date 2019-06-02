@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-
+#include <assert.h>
+#include <stdio.h>
 #include "adiak.h"
 #include "adiak_tool.h"
 #include "adksys.h"
@@ -984,3 +985,115 @@ int adiak_cputime()
    return 0;   
 }
 
+static int adiak_type_string_helper(adiak_datatype_t *t, char *str, int len, int pos, int long_form, int size_calc_only)
+{
+   const char *simple = NULL;
+   const char *lbracket = NULL;
+   const char *rbracket = NULL;
+   int i, result;
+   int start_pos = pos;
+   
+   switch (t->dtype) {
+      case adiak_type_unset:
+         simple = "unset";
+         break;
+      case adiak_long:
+         simple = long_form ? "long" : "%ld";
+         break;
+      case adiak_ulong:
+         simple = long_form ? "unsigned long" : "%lu";
+         break;
+      case adiak_int:
+         simple = long_form ? "int" : "%d";
+         break;
+      case adiak_uint:
+         simple = long_form ? "unsigned int" : "%u";
+         break;
+      case adiak_double:
+         simple = long_form ? "double" : "%f";
+         break;
+      case adiak_date:
+         simple = long_form ? "date" : "%D";
+         break;
+      case adiak_timeval:
+         simple = long_form ? "timeval" : "%t";
+         break;
+      case adiak_version:
+         simple = long_form ? "version" : "%v";
+         break;
+      case adiak_string:
+         simple = long_form ? "string" : "%s";
+         break;
+      case adiak_catstring:
+         simple = long_form ? "catstring" : "%r";
+         break;
+      case adiak_path:
+         simple = long_form ? "path" : "%p";
+         break;
+      case adiak_range:
+         lbracket = long_form ? "range of " : "<";
+         rbracket = long_form ? ">" : "";
+         break;
+      case adiak_set:
+         lbracket = long_form ? "set of " :  "[";
+         rbracket = long_form ? "" : "]";
+         break;
+      case adiak_list:
+         lbracket = long_form ? "list of " : "{";
+         rbracket = long_form ? "" : "}";
+         break;
+     case adiak_tuple:
+        lbracket = long_form ? "tuple of " : "(";
+        rbracket = long_form ? "" : ")";
+        break;
+   }
+   if (simple) {
+      if (!size_calc_only)
+         result = snprintf(str + pos, len - pos, "%s", simple);
+      else
+         result = strlen(simple);
+      if (result != -1)
+         pos += result;
+   }
+   else if (lbracket) {
+      if (!size_calc_only)
+         result = snprintf(str + pos, len - pos, "%s", lbracket);
+      else
+         result = strlen(lbracket);
+      if (result > 0) pos += result;      
+      for (i = 0; i < t->num_subtypes; i++) {
+         pos += adiak_type_string_helper(t->subtype[i], str, len, pos, long_form, size_calc_only);
+         if (i + 1 != t->num_subtypes) {
+            if (!size_calc_only)
+               result = snprintf(str + pos, len - pos, ", ");
+            else
+               result = 2;
+            if (result > 0) pos += result;
+         }
+      }
+      if (!size_calc_only)
+         result = snprintf(str + pos, len - pos, "%s", rbracket);
+      else
+         result = strlen(rbracket);
+      if (result > 0) pos += result;
+   }
+   return pos - start_pos;
+}
+
+char *adiak_type_to_string(adiak_datatype_t *t, int long_form)
+{
+   int len;
+   int len2;
+   char *buffer;
+
+   len = adiak_type_string_helper(t, NULL, 0, 0, long_form, 1);
+   if (len <= 0)
+      return NULL;
+
+   buffer = (char *) malloc(len + 1);
+   len2 = adiak_type_string_helper(t, buffer, len+1, 0, long_form, 0);
+   assert(len == len2);
+   buffer[len] = '\0';
+
+   return buffer;
+}
