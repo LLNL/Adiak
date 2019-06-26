@@ -28,6 +28,9 @@ install(FILES
         DESTINATION include)
 
 install(TARGETS
-        adiak
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib)
+  adiak
+  EXPORT adiak-targets
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+install(EXPORT adiak-targets DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/adiak)
