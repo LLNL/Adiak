@@ -27,3 +27,23 @@ include(${BLT_SOURCE_DIR}/SetupBLT.cmake)
 
 add_subdirectory(src)
 
+include(CMakePackageConfigHelpers)
+
+# Configure adiak-config-version.cmake
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/adiak-config-version.cmake"
+  VERSION ${LIBTOOL_INTERFACE}.${LIBTOOL_REVISION}.${LIBTOOL_AGE}
+  COMPATIBILITY SameMajorVersion)
+
+set(adiak_INSTALL_INCLUDE_DIR include/)
+
+# Configure adiak-config.cmake
+configure_package_config_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/adiak-config.cmake"
+  INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/adiak"
+  PATH_VARS adiak_INSTALL_INCLUDE_DIR)
+
+install(
+  FILES "${CMAKE_CURRENT_BINARY_DIR}/adiak-config.cmake" "${CMAKE_CURRENT_BINARY_DIR}/adiak-config-version.cmake"
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/adiak")
