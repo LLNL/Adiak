@@ -506,7 +506,7 @@ static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *p
                type_index++;
          }
          target->v_ptr = newvalues;
-         return sizeof(void*);
+         return bytes_read;
    }
    return -1;
 }
