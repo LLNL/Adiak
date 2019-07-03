@@ -717,7 +717,7 @@ int adiak_launchdate()
       return -1;
    if (stime.tv_sec == 0 && stime.tv_usec == 0)
       return -1;
-   adiak_namevalue("date", adiak_general, "%D", stime.tv_sec);
+   adiak_namevalue("launchdate", adiak_general, "%D", stime.tv_sec);
    return 0;
 }
 
