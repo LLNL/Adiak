@@ -823,7 +823,7 @@ static int measure_systime()
    struct timeval tm;
 
    result = adksys_get_times(&tm, NULL);
-   if (!result)
+   if (result == -1)
       return -1;
    return adiak_namevalue("systime", adiak_performance, "%t", &tm);
 }
@@ -834,7 +834,7 @@ static int measure_cputime()
    struct timeval tm;
 
    result = adksys_get_times(NULL, &tm);
-   if (!result)
+   if (result == -1)
       return -1;
    return adiak_namevalue("cputime", adiak_performance, "%t", &tm);
 }
