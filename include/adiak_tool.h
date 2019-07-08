@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-typedef void (*adiak_nameval_cb_t)(const char *name, adiak_category_t category, adiak_value_t *value, adiak_datatype_t *t, void *opaque_value);
+typedef void (*adiak_nameval_cb_t)(const char *name, adiak_category_t category, const char *subcategory, adiak_value_t *value, adiak_datatype_t *t, void *opaque_value);
 
 void adiak_register_cb(int adiak_version, adiak_category_t category, adiak_nameval_cb_t nv, int report_on_all_ranks, void *opaque_val);
 

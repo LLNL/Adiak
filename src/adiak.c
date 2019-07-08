@@ -30,6 +30,7 @@ typedef struct {
 typedef struct record_list_t {
    const char *name;
    adiak_category_t category;
+   const char *subcategory;
    adiak_value_t *value;
    adiak_datatype_t *dtype;
    struct record_list_t *list_next;
@@ -74,7 +75,7 @@ static void free_adiak_value_worker(adiak_datatype_t *t, adiak_value_t *v);
 static adiak_type_t toplevel_type(const char *typestr);
 static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *ptr);
 
-static void record_nameval(const char *name, adiak_category_t category,
+static void record_nameval(const char *name, adiak_category_t category, const char *subcategory,
                            adiak_value_t *value, adiak_datatype_t *dtype);
 
 static int measure_walltime();
@@ -98,12 +99,16 @@ adiak_datatype_t *adiak_new_datatype(const char *typestr, ...)
    return t;
 }
 
-int adiak_raw_namevalue(const char *name, adiak_category_t category, adiak_value_t *value, adiak_datatype_t *type)
+int adiak_raw_namevalue(const char *name, adiak_category_t category, const char *subcategory,
+                        adiak_value_t *value, adiak_datatype_t *type)
 {
    adiak_tool_t *tool;
 
    if (category != adiak_control)
-      record_nameval(name, category, value, type);
+      record_nameval(name, category, subcategory, value, type);
+
+   if (!tool_list)
+      return 0;
    
    for (tool = *tool_list; tool != NULL; tool = tool->next) {
       if (!tool->report_on_all_ranks && !adiak_config->reportable_rank)
@@ -111,12 +116,12 @@ int adiak_raw_namevalue(const char *name, adiak_category_t category, adiak_value
       if (tool->category != adiak_category_all && tool->category != category)
          continue;
       if (tool->name_val_cb)
-         tool->name_val_cb(name, category, value, type, tool->opaque_val);
+         tool->name_val_cb(name, category, subcategory, value, type, tool->opaque_val);
    }
    return 0;   
 }
 
-int adiak_namevalue(const char *name, adiak_category_t category, const char *typestr, ...)
+int adiak_namevalue(const char *name, adiak_category_t category, const char *subcategory, const char *typestr, ...)
 {
    va_list ap;
    adiak_datatype_t *t;
@@ -177,7 +182,7 @@ int adiak_namevalue(const char *name, adiak_category_t category, const char *typ
       copy_value(value, t, container_ptr);
    }
    
-   return adiak_raw_namevalue(name, category, value, t);
+   return adiak_raw_namevalue(name, category, subcategory, value, t);
 }
 
 adiak_numerical_t adiak_numerical_from_type(adiak_type_t dtype)
@@ -220,7 +225,7 @@ void adiak_list_namevals(int adiak_version, adiak_category_t category, adiak_nam
    for (i = record_list; i != NULL; i = i->list_next) {
       if (category != adiak_category_all && i->category != category)
          continue;
-      nv(i->name, i->category, i->value, i->dtype, opaque_val);
+      nv(i->name, i->category, i->subcategory, i->value, i->dtype, opaque_val);
    }
    (void) adiak_version;
 }
@@ -277,7 +282,7 @@ void adiak_fini()
       measure_walltime();
 
    val.v_int = 0;
-   adiak_raw_namevalue("fini", adiak_control, &val, &base_int);   
+   adiak_raw_namevalue("fini", adiak_control, NULL, &val, &base_int);   
 }
 
 static void adiak_register(int adiak_version, adiak_category_t category,
@@ -636,7 +641,7 @@ static unsigned long strhash(const char *str) {
     return hash;   
 }
 
-static void record_nameval(const char *name, adiak_category_t category,
+static void record_nameval(const char *name, adiak_category_t category, const char *subcategory,
                            adiak_value_t *value, adiak_datatype_t *dtype)
 {
    record_list_t *addrecord = NULL, *i;
@@ -661,6 +666,7 @@ static void record_nameval(const char *name, adiak_category_t category,
    }
    
    addrecord->category = category;
+   addrecord->subcategory = addrecord->subcategory ? strdup(subcategory) : NULL;
    addrecord->value = value;
    addrecord->dtype = dtype;
 
@@ -685,7 +691,7 @@ int adiak_flush(const char *location)
 {
    adiak_value_t val;
    val.v_ptr = (void *) location;
-   return adiak_raw_namevalue("flush", adiak_control, &val, &base_path);
+   return adiak_raw_namevalue("flush", adiak_control, NULL, &val, &base_path);
 }
 
 int adiak_clean()
@@ -695,11 +701,13 @@ int adiak_clean()
    int result;
    
    val.v_int = 0;
-   result = adiak_raw_namevalue("clean", adiak_control, &val, &base_int);
+   result = adiak_raw_namevalue("clean", adiak_control, NULL, &val, &base_int);
    for (i = record_list; i != NULL; i = next) {
       free_adiak_value(i->dtype, i->value);
       free_adiak_type(i->dtype);
       free((void *) i->name);
+      if (i->subcategory)
+         free((void *) i->subcategory);
       next = i->list_next;
       free(i);
    }
@@ -717,7 +725,7 @@ int adiak_launchdate()
       return -1;
    if (stime.tv_sec == 0 && stime.tv_usec == 0)
       return -1;
-   adiak_namevalue("launchdate", adiak_general, "%D", stime.tv_sec);
+   adiak_namevalue("launchdate", adiak_general, "runinfo", "%D", stime.tv_sec);
    return 0;
 }
 
@@ -737,7 +745,7 @@ int adiak_executable()
    else
       filepart++;
 
-   adiak_namevalue("executable", adiak_general, "%s", filepart);
+   adiak_namevalue("executable", adiak_general, "binary", "%s", filepart);
    return 0;
 }
 
@@ -750,7 +758,7 @@ int adiak_executablepath()
    if (result == -1)
       return -1;
    
-   adiak_namevalue("executablepath", adiak_general, "%p", path);
+   adiak_namevalue("executablepath", adiak_general, "binary", "%p", path);
    return 0;
 }
 
@@ -779,7 +787,7 @@ int adiak_cmdline()
          myargv[j++] = arglist + i + 1;
    }
 
-   result = adiak_namevalue("cmdline", adiak_general, "[%s]", myargv, myargc);
+   result = adiak_namevalue("cmdline", adiak_general, "runinfo", "[%s]", myargv, myargc);
    if (result == -1)
       goto error;
 
@@ -814,7 +822,7 @@ static int measure_walltime()
    else
       diff.tv_usec = etime.tv_usec - stime.tv_usec;
    
-   return adiak_namevalue("walltime", adiak_performance, "%t", &diff);
+   return adiak_namevalue("walltime", adiak_performance, "timing", "%t", &diff);
 }
 
 static int measure_systime()
@@ -825,7 +833,7 @@ static int measure_systime()
    result = adksys_get_times(&tm, NULL);
    if (result == -1)
       return -1;
-   return adiak_namevalue("systime", adiak_performance, "%t", &tm);
+   return adiak_namevalue("systime", adiak_performance, "timing", "%t", &tm);
 }
 
 static int measure_cputime()
@@ -836,7 +844,7 @@ static int measure_cputime()
    result = adksys_get_times(NULL, &tm);
    if (result == -1)
       return -1;
-   return adiak_namevalue("cputime", adiak_performance, "%t", &tm);
+   return adiak_namevalue("cputime", adiak_performance, "timing", "%t", &tm);
 }
 
 int adiak_user()
@@ -848,7 +856,7 @@ int adiak_user()
    if (result == -1)
       return -1;
 
-   result = adiak_namevalue("user", adiak_general, "%s", name);
+   result = adiak_namevalue("user", adiak_general, "runinfo", "%s", name);
    free(name);
    return result;
 }
@@ -862,7 +870,7 @@ int adiak_uid()
    if (result == -1)
       return -1;
 
-   result = adiak_namevalue("uid", adiak_general, "%s", name);
+   result = adiak_namevalue("uid", adiak_general, "runinfo", "%s", name);
    free(name);
    return result;   
 }
@@ -876,7 +884,7 @@ int adiak_hostname()
    if (result == -1)
       return -1;
 
-   return adiak_namevalue("hostname", adiak_general, "%s", hostname);
+   return adiak_namevalue("hostname", adiak_general, "host", "%s", hostname);
 }
 
 int adiak_clustername()
@@ -902,7 +910,7 @@ int adiak_clustername()
    }
    clustername[i] = '\0';
 
-   return adiak_namevalue("cluster", adiak_general, "%s", clustername);   
+   return adiak_namevalue("cluster", adiak_general, "host", "%s", clustername);   
 }
 
 int adiak_hostlist()
@@ -918,7 +926,7 @@ int adiak_hostlist()
    if (result == -1)
       return -1;
    
-   result = adiak_namevalue("hostlist", adiak_general, "[%s]", hostlist_array, num_hosts);
+   result = adiak_namevalue("hostlist", adiak_general, "host", "[%s]", hostlist_array, num_hosts);
 
    if (hostlist_array)
       free(hostlist_array);
@@ -938,7 +946,7 @@ int adiak_job_size()
 #endif
    if (result == -1)
       return -1;
-   return adiak_namevalue("jobsize", adiak_general, "%d", size);
+   return adiak_namevalue("jobsize", adiak_general, "mpi", "%d", size);
 }
 
 int adiak_libraries()
@@ -952,7 +960,7 @@ int adiak_libraries()
    if (result == -1)
       goto error;
 
-   result = adiak_namevalue("libraries", adiak_general, "[%p]", libraries, libraries_size);
+   result = adiak_namevalue("libraries", adiak_general, "binary", "[%p]", libraries, libraries_size);
    if (result == -1)
       goto error;
    retval = 0;
@@ -1043,8 +1051,8 @@ static int adiak_type_string_helper(adiak_datatype_t *t, char *str, int len, int
          rbracket = long_form ? "" : "}";
          break;
      case adiak_tuple:
-        lbracket = long_form ? "tuple of " : "(";
-        rbracket = long_form ? "" : ")";
+        lbracket = long_form ? "tuple of (" : "(";
+        rbracket = long_form ? ")" : ")";
         break;
    }
    if (simple) {

@@ -7,9 +7,7 @@
 
 
 #if defined(USE_MPI)
-extern "C" {
 #include <mpi.h>
-}
 #endif
 
 using namespace std;
@@ -158,7 +156,7 @@ int main(int argc, char *argv[])
    MPI_Init(&argc, &argv);
    adiak::init(&world);
 #else
-   adiak::init();
+   adiak::init(NULL);
 #endif
 
    

@@ -91,7 +91,7 @@ void adiak_fini();
  * struct { int pos; const char *val; } letters[3] = { {1, 'a'}, {2, 'b'}, {3, 'c} }
  * adiak_namevalue("alphabet", adiak_general, "[(%u, %s)]", letters, 3, 2);
  **/
-int adiak_namevalue(const char *name, adiak_category_t category, const char *typestr, ...);
+int adiak_namevalue(const char *name, adiak_category_t category, const char *subcategory, const char *typestr, ...);
 
 /**
  * adiak_new_datatype construts a new adiak_datatype_t that can be
@@ -103,8 +103,9 @@ adiak_datatype_t *adiak_new_datatype(const char *typestr, ...);
  * Similar to adiak_namevalue, adiak_raw_namevalue registers a new name/value pair,
  * but with an already constructed datatype and value.
  **/
-int adiak_raw_namevalue(const char *name, adiak_category_t category, adiak_value_t *value, adiak_datatype_t *type);
-   
+int adiak_raw_namevalue(const char *name, adiak_category_t category, const char *subcategory,
+                        adiak_value_t *value, adiak_datatype_t *type);
+
 int adiak_user();  /* Makes a 'user' name/val with the real name of who's running the job */
 int adiak_uid(); /* Makes a 'uid' name/val with the uid of who's running the job */
 int adiak_launchdate(); /* Makes a 'date' name/val with the date of when this job started */

@@ -56,17 +56,17 @@ namespace adiak
     * For both MPI and non-MPI jobs call adiak::init before registering any name/value
     * pairs.
     **/
-#if defined(MPI_VERSION)
-   void init(MPI_Comm *communicator);
-#else
-   void init();
-#endif
+   void init(void *mpi_communicator_p) {
+      adiak_init(mpi_communicator_p);
+   }      
 
    /**
     * Call adiak::fini near the end of your job.  For MPI programs, do so before a call to
     * MPI_Finalize()
     **/
-   void fini();
+   void fini() {
+      adiak_fini();
+   }
 
    /**
     * adiak::value() registers a name/value pair with Adiak.  Adiak will make a shallow
@@ -113,30 +113,24 @@ namespace adiak
     * There is also a c-interface to register name/values, see the adiak.h file.
     **/
    template <typename T>
-   bool value(std::string name, T value, adiak_category_t category = adiak_general) {
+   bool value(std::string name, T value, adiak_category_t category = adiak_general, std::string subcategory = "") {
       adiak_datatype_t *datatype = adiak::internal::parse<T>::make_type();
       if (!datatype)
-         return false;      
+         return false;
       adiak_value_t *avalue = (adiak_value_t *) malloc(sizeof(adiak_value_t));
       bool result = adiak::internal::parse<T>::make_value(value, avalue, datatype);
       if (!result)
          return false;
-      return adiak_raw_namevalue(name.c_str(), category, avalue, datatype) == 0;
+      return adiak_raw_namevalue(name.c_str(), category, subcategory.c_str(), avalue, datatype) == 0;
    }
    
    template <typename T>
-   bool value(std::string name, T valuea, T valueb, adiak_category_t category = adiak_general) {
+   bool value(std::string name, T valuea, T valueb,
+              adiak_category_t category = adiak_general, std::string subcategory = "")
+   {
       //adiak_datatype_t datatype = adiak_unset_datatype;
       //return adiak::internal::handle_container(name, valuea, valueb, datatype);
       return true;
-   }
-
-   inline void init(void *mpi_communicator_p) {
-      adiak_init(mpi_communicator_p);
-   }
-
-   inline void fini() {
-      adiak_fini();
    }
 
    //Registers a name/value string of "user" with the real name of the person running this process

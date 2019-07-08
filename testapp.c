@@ -15,13 +15,13 @@ void dowork(struct timeval start)
 
    double gridarray[4] = { 4.5, 1.18, 0.24, 8.92 };
 
-   result = adiak_namevalue("compiler", adiak_general, "%s", "gcc@8.1.0");
+   result = adiak_namevalue("compiler", adiak_general, NULL, "%s", "gcc@8.1.0");
    if (result != 0) printf("return: %d\n\n", result);
 
-   result = adiak_namevalue("gridvalues2", adiak_general, "[%f]", gridarray, 4);
+   result = adiak_namevalue("gridvalues2", adiak_general, NULL, "[%f]", gridarray, 4);
    if (result != 0) printf("return: %d\n\n", result);
 
-   result = adiak_namevalue("problemsize", adiak_general, "%lu", 14000);
+   result = adiak_namevalue("problemsize", adiak_general, NULL, "%lu", 14000);
    if (result != 0) printf("return: %d\n\n", result);
 
    result = adiak_user();
@@ -69,7 +69,7 @@ void dowork(struct timeval start)
    struct timeval *timerange[2];
    timerange[0] = &start;
    timerange[1] = &end;
-   result = adiak_namevalue("computetime", adiak_performance, "<%t>", &timerange);
+   result = adiak_namevalue("computetime", adiak_performance, NULL, "<%t>", &timerange);
 
    result = adiak_flush("stdout");
    if (result != 0) printf("return: %d\n\n", result);

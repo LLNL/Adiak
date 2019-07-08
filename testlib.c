@@ -112,14 +112,14 @@ static void print_value(adiak_value_t *val, adiak_datatype_t *t)
    }
 }
 
-static void print_nameval(const char *name, adiak_category_t category, adiak_value_t *value, adiak_datatype_t *t, void *opaque_value)
+static void print_nameval(const char *name, adiak_category_t category, const char *subcategory, adiak_value_t *value, adiak_datatype_t *t, void *opaque_value)
 {
    printf("%s - %s: ", STR(TOOLNAME), name);
    print_value(value, t);
    printf("\n");
 }
 
-static void print_on_flush(const char *name, adiak_category_t category, adiak_value_t *value, adiak_datatype_t *t, void *opaque_value)
+static void print_on_flush(const char *name, adiak_category_t category, const char *subcategory, adiak_value_t *value, adiak_datatype_t *t, void *opaque_value)
 {
    if (strcmp(name, "fini") != 0)
       return;
