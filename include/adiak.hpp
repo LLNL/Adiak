@@ -56,7 +56,7 @@ namespace adiak
     * For both MPI and non-MPI jobs call adiak::init before registering any name/value
     * pairs.
     **/
-   void init(void *mpi_communicator_p) {
+   inline void init(void *mpi_communicator_p) {
       adiak_init(mpi_communicator_p);
    }      
 
@@ -64,7 +64,7 @@ namespace adiak
     * Call adiak::fini near the end of your job.  For MPI programs, do so before a call to
     * MPI_Finalize()
     **/
-   void fini() {
+   inline void fini() {
       adiak_fini();
    }
 
