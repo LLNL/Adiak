@@ -127,8 +127,9 @@ int adiak_flush(const char *location);
 int adiak_clean();
    
 adiak_numerical_t adiak_numerical_from_type(adiak_type_t dtype);
-#endif
 
 #if defined(__cplusplus)
 }
+#endif
+
 #endif
