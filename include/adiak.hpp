@@ -145,10 +145,15 @@ namespace adiak
       return adiak_uid() == 0;
    }
    
-   //Registers a name/value date of "date" with the starttime of this process.
+   //Registers a name/value date of "launchdate" with the starttime of this process.
    inline bool launchdate() {
       return adiak_launchdate() == 0;
    }
+
+   //Registers a name/value date of "launchday" with the starttime of this process, rounded down to midnight.
+   inline bool launchday() {
+      return adiak_launchday() == 0;
+   }   
 
    //Registers a name/value string of "executable" with executable file (with path stripped) running this process.
    inline bool executable() {

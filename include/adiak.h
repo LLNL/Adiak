@@ -108,7 +108,8 @@ int adiak_raw_namevalue(const char *name, adiak_category_t category, const char 
 
 int adiak_user();  /* Makes a 'user' name/val with the real name of who's running the job */
 int adiak_uid(); /* Makes a 'uid' name/val with the uid of who's running the job */
-int adiak_launchdate(); /* Makes a 'date' name/val with the date of when this job started */
+int adiak_launchdate(); /* Makes a 'launchdate' name/val with the date of when this job started */
+int adiak_launchday(); /* Makes a 'launchday' name/val with date when this job started, but truncated to midnight */
 int adiak_executable(); /* Makes an 'executable' name/val with the executable file for this job */ 
 int adiak_executablepath(); /* Makes an 'executablepath' name/value with the full executable file path. */
 int adiak_libraries(); /* Makes a 'libraries' name/value with the set of shared library paths. */

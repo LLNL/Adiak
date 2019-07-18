@@ -106,7 +106,6 @@ int adiak_raw_namevalue(const char *name, adiak_category_t category, const char 
 
    if (category != adiak_control)
       record_nameval(name, category, subcategory, value, type);
-
    if (!tool_list)
       return 0;
    
@@ -727,6 +726,20 @@ int adiak_launchdate()
       return -1;
    adiak_namevalue("launchdate", adiak_general, "runinfo", "%D", stime.tv_sec);
    return 0;
+}
+
+int adiak_launchday()
+{
+   int result;
+   struct timeval stime;
+   result = adksys_starttime(&stime);
+   if (result == -1)
+      return -1;
+   if (stime.tv_sec == 0 && stime.tv_usec == 0)
+      return -1;
+#define SECONDS_IN_DAY (24*60*60)
+   stime.tv_sec -= (stime.tv_sec % SECONDS_IN_DAY);
+   adiak_namevalue("launchday", adiak_general, "runinfo", "%D", stime.tv_sec);   
 }
 
 int adiak_executable()
