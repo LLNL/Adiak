@@ -739,7 +739,8 @@ int adiak_launchday()
       return -1;
 #define SECONDS_IN_DAY (24*60*60)
    stime.tv_sec -= (stime.tv_sec % SECONDS_IN_DAY);
-   adiak_namevalue("launchday", adiak_general, "runinfo", "%D", stime.tv_sec);   
+   adiak_namevalue("launchday", adiak_general, "runinfo", "%D", stime.tv_sec);
+   return 0;
 }
 
 int adiak_executable()
