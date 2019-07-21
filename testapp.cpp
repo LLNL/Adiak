@@ -1,7 +1,7 @@
 #include "adiak.hpp"
 #include <vector>
 #include <set>
-
+#include <cstdio>
 #include <time.h>
 #include <sys/time.h>
 
