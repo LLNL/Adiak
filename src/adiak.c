@@ -940,7 +940,8 @@ int adiak_hostlist()
    if (result == -1)
       return -1;
    
-   result = adiak_namevalue("hostlist", adiak_general, "host", "[%s]", hostlist_array, num_hosts);
+   if (hostlist_array)
+      result = adiak_namevalue("hostlist", adiak_general, "host", "[%s]", hostlist_array, num_hosts);
 
    if (hostlist_array)
       free(hostlist_array);
