@@ -52,13 +52,14 @@ typedef struct adiak_datatype_t {
    struct adiak_datatype_t **subtype;
 } adiak_datatype_t;
 
-typedef union  {
+typedef union adiak_value_t {
    signed long v_long;
    int v_int;
    short v_short;
    char v_char;
    double v_double;
    void *v_ptr;
+   union adiak_value_t *v_subval;
 } adiak_value_t;
    
 static const adiak_datatype_t adiak_unset_datatype = { adiak_type_unset, adiak_numerical_unset, 0, 0, NULL };
@@ -122,6 +123,7 @@ int adiak_cputime(); /* Makes a 'cputime' name/val with the timeval of how much 
 
 int adiak_job_size(); /* Makes a 'jobsize' name/val with the number of ranks in an MPI job */
 int adiak_hostlist(); /* Makes a 'hostlist' name/val with the set of hostnames in this MPI job */
+int adiak_num_hosts(); /* Makes a 'numhosts' name/val with the number of hosts in this MPI job */   
 
 int adiak_flush(const char *location);
 int adiak_clean();
