@@ -38,7 +38,7 @@ typedef struct record_list_t {
 } record_list_t;
 
 static adiak_t *adiak_config;
-static adiak_tool_t **tool_list;
+static volatile adiak_tool_t **tool_list;
 
 static adiak_tool_t *local_tool_list;
 adiak_t adiak_public = { ADIAK_VERSION, ADIAK_VERSION, 0, 1, &local_tool_list, 0 };
@@ -109,7 +109,7 @@ int adiak_raw_namevalue(const char *name, adiak_category_t category, const char 
    if (!tool_list)
       return 0;
    
-   for (tool = *tool_list; tool != NULL; tool = tool->next) {
+   for (tool = (adiak_tool_t *) *tool_list; tool != NULL; tool = tool->next) {
       if (!tool->report_on_all_ranks && !adiak_config->reportable_rank)
          continue;
       if (tool->category != adiak_category_all && tool->category != category)
@@ -241,7 +241,7 @@ static void adiak_common_init()
       adiak_config = &adiak_public;
    if (ADIAK_VERSION < adiak_config->minimum_version)
       adiak_config->minimum_version = ADIAK_VERSION;
-   tool_list = adiak_config->tool_list;
+   tool_list = (volatile adiak_tool_t **) adiak_config->tool_list;
 }
 
 void adiak_init(void *mpi_communicator_p)
@@ -297,7 +297,7 @@ static void adiak_register(int adiak_version, adiak_category_t category,
    newtool->report_on_all_ranks = report_on_all_ranks;
    newtool->name_val_cb = nv;
    newtool->category = category;
-   newtool->next = *tool_list;
+   newtool->next = (adiak_tool_t *) *tool_list;
    newtool->prev = NULL;
    if (*tool_list) 
       (*tool_list)->prev = newtool;
@@ -657,6 +657,7 @@ static void record_nameval(const char *name, adiak_category_t category, const ch
 
    if (!addrecord) {
       addrecord = (record_list_t *) malloc(sizeof(record_list_t));
+      memset(addrecord, 0, sizeof(*addrecord));
       newrecord = 1;
    }
    else {

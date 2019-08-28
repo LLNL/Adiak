@@ -139,7 +139,7 @@ namespace adiak
          return false;
       }
       result = adiak_raw_namevalue(name.c_str(), category, subcategory.c_str(), values, datatype);
-      if (!result) {
+      if (result != 0) {
          return false;
       }
       return true;

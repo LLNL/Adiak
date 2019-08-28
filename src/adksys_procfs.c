@@ -43,7 +43,7 @@ int adksys_get_cmdline_buffer(char **output_buffer, int *output_size)
 {
    FILE *f = NULL;
    size_t bytes_read = 0, size = 0;
-   char *buffer;
+   char *buffer = NULL;
    size_t result;
    
    f = fopen("/proc/self/cmdline", "r");
