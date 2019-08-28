@@ -123,9 +123,6 @@ static int gethostlist(char **hostlist, int *num_hosts, int *max_hostlen, int al
 
    MPI_Comm_free(&hostcomm);
 
-   if (!all_ranks)
-      return 0;
-
    MPI_Bcast(max_hostlen, 1, MPI_INT, 0, adiak_communicator);
    MPI_Bcast(num_hosts, 1, MPI_INT, 0, adiak_communicator);   
    hostlist_size = (*max_hostlen) * (*num_hosts);
@@ -138,9 +135,17 @@ static int gethostlist(char **hostlist, int *num_hosts, int *max_hostlen, int al
 
 int adksys_hostlist(char ***out_hostlist_array, int *out_num_hosts, char **out_name_buffer, int all_ranks)
 {
-   int num_hosts = 0, max_hostlen = 0, result, i;
-   char *hostlist = NULL;
-   char **hostlist_array = NULL;
+   static char *hostlist = NULL;
+   static char **hostlist_array = NULL;
+   static int num_hosts = 0;
+   static int had_error = 0;
+   int max_hostlen = 0, result, i;
+
+   if (had_error)
+      return -1;
+   
+   if (hostlist)
+      goto done;
 
    result = gethostlist(&hostlist, &num_hosts, &max_hostlen, all_ranks);
    if (result == -1)
@@ -151,7 +156,7 @@ int adksys_hostlist(char ***out_hostlist_array, int *out_num_hosts, char **out_n
 
    hostlist_array = malloc(sizeof(char *) * num_hosts);
    for (i = 0; i < num_hosts; i++)
-      hostlist_array[i] = hostlist + (i * max_hostlen);
+      hostlist_array[i] = hostlist + (i * max_hostlen);      
 
   done:
    *out_hostlist_array = hostlist_array;
@@ -163,6 +168,7 @@ int adksys_hostlist(char ***out_hostlist_array, int *out_num_hosts, char **out_n
       free(hostlist);
    if (hostlist_array)
       free(hostlist_array);
+   had_error = 1;
    return -1;
 }
 

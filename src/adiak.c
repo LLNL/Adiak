@@ -509,7 +509,7 @@ static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *p
             if (datatype->dtype == adiak_tuple)
                type_index++;
          }
-         target->v_ptr = newvalues;
+         target->v_subval = newvalues;
          return bytes_read;
    }
    return -1;
@@ -941,27 +941,42 @@ int adiak_hostlist()
    if (result == -1)
       return -1;
    
-   result = adiak_namevalue("hostlist", adiak_general, "host", "[%s]", hostlist_array, num_hosts);
-
    if (hostlist_array)
-      free(hostlist_array);
-   if (name_buffer)
-       free(name_buffer);
+      result = adiak_namevalue("hostlist", adiak_general, "host", "[%s]", hostlist_array, num_hosts);
 
+   return result;
+}
+
+int adiak_num_hosts()
+{
+   char **hostlist_array = NULL;
+   int num_hosts = 0, result = -1;
+   char *name_buffer = NULL;
+
+#if defined(USE_MPI)
+   if (adiak_config->use_mpi)
+      result = adksys_hostlist(&hostlist_array, &num_hosts, &name_buffer, adiak_config->report_on_all_ranks);
+#endif
+
+   if (hostlist_array && result != -1)
+      result = adiak_namevalue("numhosts", adiak_general, "mpi", "%u", (unsigned int) num_hosts);
+   else
+      result = adiak_namevalue("numhosts", adiak_general, "mpi", "%u", (unsigned int) 1);
+   
    return result;
 }
 
 int adiak_job_size()
 {
-   int result = -1, size = 0;
+   int result = -1, size = 1;
 
 #if defined(USE_MPI)
    if (adiak_config->use_mpi)
       result = adksys_jobsize(&size);
-#endif
    if (result == -1)
       return -1;
-   return adiak_namevalue("jobsize", adiak_general, "mpi", "%d", size);
+#endif
+   return adiak_namevalue("jobsize", adiak_general, "mpi", "%u", size);
 }
 
 int adiak_libraries()

@@ -228,6 +228,11 @@ namespace adiak
       return adiak_hostlist() == 0;
    }
 
+   //Registers a name/value set an unsigned integer of the number of nodes that are part of this job.
+   inline bool numhosts() {
+      return adiak_num_hosts() == 0;
+   }
+   
    inline bool flush(std::string output) {
       return adiak_flush(output.c_str()) == 0;
    }
