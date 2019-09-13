@@ -1,4 +1,5 @@
 #include "adiak.h"
+#include "testlib.c"
 #include <stdio.h>
 #include <time.h>
 #include <sys/time.h>

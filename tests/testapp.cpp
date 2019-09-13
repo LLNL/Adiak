@@ -97,6 +97,9 @@ void dowork(struct timeval start)
    result = adiak::executable();
    if (!result) printf("return: %d\n\n", result);
 
+   result = adiak::workdir();
+   if (!result) printf("return: %d\n\n", result);
+
    result = adiak::executablepath();
    if (!result) printf("return: %d\n\n", result);
 
