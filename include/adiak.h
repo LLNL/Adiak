@@ -1,3 +1,8 @@
+// Copyright 2019 Lawrence Livermore National Security, LLC
+// See the top-level COPYRIGHT file for details.
+//
+// SPDX-License-Identifier: MIT
+
 #if !defined(ADIAK_H_)
 #define ADIAK_H_
 

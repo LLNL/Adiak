@@ -1,3 +1,8 @@
+// Copyright 2019 Lawrence Livermore National Security, LLC
+// See the top-level COPYRIGHT file for details.
+//
+// SPDX-License-Identifier: MIT
+
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
