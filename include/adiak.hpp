@@ -3,6 +3,9 @@
 //
 // SPDX-License-Identifier: MIT
 
+#ifndef ADIAK_HPP_
+#define ADIAK_HPP_
+
 #include <string>
 
 #include "adiak.h"
@@ -246,3 +249,5 @@ namespace adiak
       return adiak_clean() == 0;
    }
 }
+
+#endif
