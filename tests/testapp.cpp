@@ -1,7 +1,7 @@
 #include "adiak.hpp"
 #include <vector>
 #include <set>
-
+#include <cstdio>
 #include <time.h>
 #include <sys/time.h>
 
@@ -129,9 +129,9 @@ void dowork(struct timeval start)
    if (!result) printf("return: %d\n\n", result);
 #endif
    
-   gettimeofday(&end, NULL);
+/*   gettimeofday(&end, NULL);
    result = adiak::value("computetime", &start, &end);
-   if (!result) printf("return: %d\n\n", result);
+   if (!result) printf("return: %d\n\n", result);*/
    
    array<float, 3> floatar;
    floatar[0] = 0.01f;
@@ -148,7 +148,6 @@ int main(int argc, char *argv[])
 #endif
    struct timeval start;
 
-   dowork(start);
    dowork(start);
    
    gettimeofday(&start, NULL);

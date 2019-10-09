@@ -9,15 +9,6 @@ This metadata is provided as name/value pairs.  For application-provided data, a
 
 Adiak has a tool interface, which allows tools to subscribe to this metadata.  Example tools might include performance analysis tools, workflow tracking tools, or anything else that needs this metadata.  Tools can iterate receive metadata name/values as they are provided by the application, or examine existing metadata values.
 
-Documentation
-----------------
 More information can be found in adiak/docs.
-
-Contributing
-----------------
-Contributions to Adiak are welcome, and should be made under the MIT license.  Please submit pull requests to the github repository.
-
-
-SPDX-License-Identifier: MIT
 
 LLNL-CODE-792240

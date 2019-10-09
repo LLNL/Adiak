@@ -1,3 +1,8 @@
+// Copyright 2019 Lawrence Livermore National Security, LLC
+// See the top-level COPYRIGHT file for details.
+//
+// SPDX-License-Identifier: MIT
+
 #include <type_traits>
 #include <set>
 #include <vector>
@@ -151,9 +156,25 @@ namespace adiak
          static bool make_value(const T &obj, adiak_value_t *val, adiak_datatype_t *) {
             element_type<T>::set(*val, obj);
             return true;
-         }         
+         }
       };
-
+      
+      template <typename T>
+      static adiak_datatype_t *make_range_t() {
+         adiak_datatype_t *datatype = (adiak_datatype_t *) malloc(sizeof(adiak_datatype_t));
+         memset(datatype, 0, sizeof(*datatype));
+         datatype->dtype = adiak_range;
+         datatype->num_elements = 2;
+         datatype->num_subtypes = 1;
+         datatype->subtype = (adiak_datatype_t **) malloc(sizeof(adiak_datatype_t *));
+         datatype->subtype[0] = parse<T>::make_type();
+         if (datatype->subtype[0] == NULL) {
+            free(datatype);
+            datatype = NULL;
+         }
+         return datatype;
+      }         
+      
       template <typename T>
       struct create_container_type
       {

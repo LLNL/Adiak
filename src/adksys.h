@@ -1,5 +1,12 @@
+// Copyright 2019 Lawrence Livermore National Security, LLC
+// See the top-level COPYRIGHT file for details.
+//
+// SPDX-License-Identifier: MIT
+
 #if !defined(ADKSYS_H_)
 #define ADKSYS_H_
+
+#include <sys/time.h> /* struct timeval */
 
 int adksys_get_libraries(char ***libraries, int *libraries_size, int *libnames_need_free);
 int adksys_hostlist(char ***out_hostlist_array, int *out_num_hosts, char **out_name_buffer, int all_ranks);

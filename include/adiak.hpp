@@ -1,3 +1,11 @@
+// Copyright 2019 Lawrence Livermore National Security, LLC
+// See the top-level COPYRIGHT file for details.
+//
+// SPDX-License-Identifier: MIT
+
+#ifndef ADIAK_HPP_
+#define ADIAK_HPP_
+
 #include <string>
 
 #include "adiak.h"
@@ -128,8 +136,20 @@ namespace adiak
    bool value(std::string name, T valuea, T valueb,
               adiak_category_t category = adiak_general, std::string subcategory = "")
    {
-      //adiak_datatype_t datatype = adiak_unset_datatype;
-      //return adiak::internal::handle_container(name, valuea, valueb, datatype);
+      adiak_datatype_t *datatype = adiak::internal::make_range_t<T>();
+      if (!datatype)
+         return false;
+      adiak_value_t *values = (adiak_value_t *) malloc(sizeof(adiak_value_t) * 2);
+      bool result;
+      result = adiak::internal::parse<T>::make_value(valuea, values, datatype->subtype[0]);
+      result |= adiak::internal::parse<T>::make_value(valueb, values+1, datatype->subtype[0]);
+      if (!result) {
+         return false;
+      }
+      result = adiak_raw_namevalue(name.c_str(), category, subcategory.c_str(), values, datatype);
+      if (result != 0) {
+         return false;
+      }
       return true;
    }
 
@@ -229,3 +249,5 @@ namespace adiak
       return adiak_clean() == 0;
    }
 }
+
+#endif

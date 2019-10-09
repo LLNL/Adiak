@@ -1,3 +1,8 @@
+// Copyright 2019 Lawrence Livermore National Security, LLC
+// See the top-level COPYRIGHT file for details.
+//
+// SPDX-License-Identifier: MIT
+
 #if !defined(ADIAK_H_)
 #define ADIAK_H_
 
@@ -8,6 +13,7 @@ extern "C" {
 #endif
 
 #define ADIAK_VERSION 1
+#define ADIAK_MINOR_VERSION 0
 
 typedef enum {
    adiak_numerical_unset = 0,
