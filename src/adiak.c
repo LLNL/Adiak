@@ -690,7 +690,7 @@ static void record_nameval(const char *name, adiak_category_t category, const ch
    }
    
    addrecord->category = category;
-   addrecord->subcategory = addrecord->subcategory ? strdup(subcategory) : NULL;
+   addrecord->subcategory = subcategory ? strdup(subcategory) : NULL;
    addrecord->value = value;
    addrecord->dtype = dtype;
 
