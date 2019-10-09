@@ -229,6 +229,25 @@ void adiak_list_namevals(int adiak_version, adiak_category_t category, adiak_nam
    (void) adiak_version;
 }
 
+int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **value,  adiak_category_t *cat, const char **subcat)
+{
+   record_list_t *i;
+   for (i = record_list; i != NULL; i = i->list_next) {
+      if (strcmp(i->name, name) == 0) {
+         if (t)
+            *t = i->dtype;
+         if (value)
+            *value = i->value;
+         if (cat)
+            *cat = i->category;
+         if (subcat)
+            *subcat = i->subcategory;
+         return 0;
+      }
+   }
+   return -1;
+}
+
 static void adiak_common_init()
 {
    static int initialized = 0;
