@@ -20,7 +20,7 @@ void adiak_list_namevals(int adiak_version, int category, adiak_nameval_cb_t nv,
 
 char *adiak_type_to_string(adiak_datatype_t *t, int long_form);
 
-int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **value, adiak_category_t *category, const char **subcat);
+int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **value, int *category, const char **subcat);
    
 #ifdef __cplusplus
 }

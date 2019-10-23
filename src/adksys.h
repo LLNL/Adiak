@@ -20,6 +20,7 @@ int adksys_starttime(struct timeval *tv);
 int adksys_get_executable(char *outpath, size_t outpath_size);
 int adksys_get_cmdline_buffer(char **output_buffer, int *output_size);
 int adksys_get_names(char **uid, char **user);
+int adksys_get_cwd(char *cwd, size_t max_size);
 void *adksys_get_public_adiak_symbol();
 
 #endif
