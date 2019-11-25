@@ -121,7 +121,7 @@ namespace adiak
     * There is also a c-interface to register name/values, see the adiak.h file.
     **/
    template <typename T>
-   bool value(std::string name, T value, adiak_category_t category = adiak_general, std::string subcategory = "") {
+   bool value(std::string name, T value, int category = adiak_general, std::string subcategory = "") {
       adiak_datatype_t *datatype = adiak::internal::parse<T>::make_type();
       if (!datatype)
          return false;
@@ -134,7 +134,7 @@ namespace adiak
    
    template <typename T>
    bool value(std::string name, T valuea, T valueb,
-              adiak_category_t category = adiak_general, std::string subcategory = "")
+              int category = adiak_general, std::string subcategory = "")
    {
       adiak_datatype_t *datatype = adiak::internal::make_range_t<T>();
       if (!datatype)
@@ -183,6 +183,11 @@ namespace adiak
    //Registers a name/value path of "executablepath" with the full path to the executable file running this process.
    inline bool executablepath() {
       return adiak_executablepath() == 0;
+   }
+
+   //Registers a name/value string of "working_directory" with the process' working directory.
+   inline bool workdir() {
+     return adiak_workdir() == 0;
    }
 
    //Registers a name/value set of paths of "libaries" with the full path to every shared library loaded in this
