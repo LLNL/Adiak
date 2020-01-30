@@ -12,8 +12,9 @@
 extern "C" {
 #endif
 
-#define ADIAK_VERSION 1
-#define ADIAK_MINOR_VERSION 0
+#define ADIAK_VERSION 0
+#define ADIAK_MINOR_VERSION 2
+#define ADIAK_POINT_VERSION 0   
 
 // ADIAK DATA CATEGORIES 
 // Please treat values through 1000 as reserved. 1001 onward can be used as
