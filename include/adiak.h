@@ -51,6 +51,8 @@ typedef enum {
    adiak_tuple        /* adiak_value string (typestring1, typestring2, ..., typestringN), passed as an N integer */
 } adiak_type_t;
 
+typedef int adiak_category_t;
+
 typedef struct adiak_datatype_t {
    adiak_type_t dtype;
    adiak_numerical_t numerical;
