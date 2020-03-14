@@ -1,9 +1,13 @@
+#if defined(_MSC_VER)
+#pragma warning(disable : 4100)
+#pragma warning(disable : 4996)
+#endif
+
 #include "adiak.hpp"
 #include <vector>
 #include <set>
 #include <cstdio>
 #include <time.h>
-#include <sys/time.h>
 
 
 #if defined(USE_MPI)
@@ -12,10 +16,9 @@
 
 using namespace std;
 
-void dowork(struct timeval start)
+void dowork()
 {
    bool result;
-   struct timeval end;
 
    vector<double> grid;
    grid.push_back(4.5);
@@ -132,10 +135,6 @@ void dowork(struct timeval start)
    if (!result) printf("return: %d\n\n", result);
 #endif
    
-/*   gettimeofday(&end, NULL);
-   result = adiak::value("computetime", &start, &end);
-   if (!result) printf("return: %d\n\n", result);*/
-   
    array<float, 3> floatar;
    floatar[0] = 0.01f;
    floatar[1] = 0.02f;
@@ -144,16 +143,18 @@ void dowork(struct timeval start)
    if (!result) printf("return: %d\n\n", result);   
 }
 
+extern "C" { void onload();  }
+
 int main(int argc, char *argv[])
 {
+#if defined(_MSC_VER)
+   onload();
+#endif
+
 #if defined(USE_MPI)
    MPI_Comm world = MPI_COMM_WORLD;
 #endif
-   struct timeval start;
 
-   dowork(start);
-   
-   gettimeofday(&start, NULL);
 #if defined(USE_MPI)
    MPI_Init(&argc, &argv);
    adiak::init(&world);
@@ -161,6 +162,7 @@ int main(int argc, char *argv[])
    adiak::init(NULL);
 #endif
 
+   dowork();
    
    adiak::fini();
    adiak::clean();

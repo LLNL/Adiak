@@ -8,6 +8,12 @@
 
 #include <stddef.h>
 
+#if defined(_MSC_VER)
+#include <Windows.h>
+#else
+#include <sys/time.h>
+#endif
+
 #if defined(__cplusplus)
 extern "C" {
 #endif

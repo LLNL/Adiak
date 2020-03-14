@@ -31,6 +31,7 @@ endif()
 include(${BLT_SOURCE_DIR}/SetupBLT.cmake)
 
 add_subdirectory(src)
+add_subdirectory(tests)
 
 include(CMakePackageConfigHelpers)
 

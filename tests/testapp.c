@@ -1,18 +1,20 @@
+#if defined(_MSC_VER)
+#pragma warning(disable : 4100)
+#pragma warning(disable : 4996)
+#endif
+
 #include "adiak.h"
-#include "testlib.c"
 #include <stdio.h>
 #include <time.h>
-#include <sys/time.h>
 #include <stdlib.h>
 
 #if defined(USE_MPI)
 #include <mpi.h>
 #endif
 
-void dowork(struct timeval start)
+void dowork()
 {
    int result;
-   struct timeval end;
 
    double gridarray[4] = { 4.5, 1.18, 0.24, 8.92 };
 
@@ -66,23 +68,21 @@ void dowork(struct timeval start)
    if (result != 0) printf("return: %d\n\n", result);
 #endif
    
-   gettimeofday(&end, NULL);
-   struct timeval *timerange[2];
-   timerange[0] = &start;
-   timerange[1] = &end;
-   result = adiak_namevalue("computetime", adiak_performance, NULL, "<%t>", &timerange);
-
    result = adiak_flush("stdout");
    if (result != 0) printf("return: %d\n\n", result);
 }
 
-int main(int argc, char *argv[])
+extern void onload();
+
+int main(int argc, char* argv[])
 {
+#if defined(_MSC_VER)
+   onload();
+#endif
+
 #if defined(USE_MPI)
    MPI_Comm world = MPI_COMM_WORLD;
 #endif
-   struct timeval start;
-   gettimeofday(&start, NULL);
 
 #if defined(USE_MPI)
    MPI_Init(&argc, &argv);
@@ -92,8 +92,8 @@ int main(int argc, char *argv[])
 #endif
    
 
-   dowork(start);
-   dowork(start);
+   dowork();
+   dowork();
 
    adiak_clean();
 

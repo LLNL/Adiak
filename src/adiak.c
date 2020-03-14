@@ -3,6 +3,10 @@
 //
 // SPDX-License-Identifier: MIT
 
+#if defined(_MSC_VER)
+#pragma warning(disable : 4996)
+#endif
+
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -354,7 +358,7 @@ static adiak_datatype_t *parse_typestr(const char *typestr, va_list *ap)
    int end = 0;
    int len;
    
-   len = strlen(typestr);
+   len = (int) strlen(typestr);
    return parse_typestr_helper(typestr, 0, len, ap, &end);
 }
 
@@ -768,6 +772,12 @@ int adiak_launchday()
    return 0;
 }
 
+#if defined(_MSC_VER)
+#define FILESEP '\\'
+#else
+#define FILESEP '/'
+#endif
+
 int adiak_executable()
 {
    char path[MAX_PATH_LEN+1];
@@ -778,7 +788,7 @@ int adiak_executable()
    if (result == -1)
       return -1;
    
-   filepart = strrchr(path, '/');
+   filepart = strrchr(path, FILESEP);
    if (!filepart)
       filepart = path;
    else
@@ -966,9 +976,9 @@ int adiak_hostlist()
 {
    char **hostlist_array = NULL;
    int num_hosts = 0, result = -1;
-   char *name_buffer = NULL;
-
+ 
 #if defined(USE_MPI)
+   char* name_buffer = NULL;
    if (adiak_config->use_mpi)
       result = adksys_hostlist(&hostlist_array, &num_hosts, &name_buffer, adiak_config->report_on_all_ranks);
 #endif
@@ -985,9 +995,9 @@ int adiak_num_hosts()
 {
    char **hostlist_array = NULL;
    int num_hosts = 0, result = -1;
-   char *name_buffer = NULL;
-
+ 
 #if defined(USE_MPI)
+   char* name_buffer = NULL;
    if (adiak_config->use_mpi)
       result = adksys_hostlist(&hostlist_array, &num_hosts, &name_buffer, adiak_config->report_on_all_ranks);
 #endif
@@ -1002,9 +1012,10 @@ int adiak_num_hosts()
 
 int adiak_job_size()
 {
-   int result = -1, size = 1;
+   int size = 1;
 
 #if defined(USE_MPI)
+   int result = -1;
    if (adiak_config->use_mpi)
       result = adksys_jobsize(&size);
    if (result == -1)
@@ -1123,7 +1134,7 @@ static int adiak_type_string_helper(adiak_datatype_t *t, char *str, int len, int
       if (!size_calc_only)
          result = snprintf(str + pos, len - pos, "%s", simple);
       else
-         result = strlen(simple);
+         result = (int) strlen(simple);
       if (result != -1)
          pos += result;
    }
@@ -1131,7 +1142,7 @@ static int adiak_type_string_helper(adiak_datatype_t *t, char *str, int len, int
       if (!size_calc_only)
          result = snprintf(str + pos, len - pos, "%s", lbracket);
       else
-         result = strlen(lbracket);
+         result = (int) strlen(lbracket);
       if (result > 0) pos += result;      
       for (i = 0; i < t->num_subtypes; i++) {
          pos += adiak_type_string_helper(t->subtype[i], str, len, pos, long_form, size_calc_only);
@@ -1146,7 +1157,7 @@ static int adiak_type_string_helper(adiak_datatype_t *t, char *str, int len, int
       if (!size_calc_only)
          result = snprintf(str + pos, len - pos, "%s", rbracket);
       else
-         result = strlen(rbracket);
+         result = (int) strlen(rbracket);
       if (result > 0) pos += result;
    }
    return pos - start_pos;

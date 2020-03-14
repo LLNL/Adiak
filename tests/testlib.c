@@ -1,13 +1,21 @@
+#if defined(_MSC_VER)
+#pragma warning(disable : 4100)
+#pragma warning(disable : 4996)
+#endif
+
 #include "adiak_tool.h"
 
 #include <stdio.h>
 #include <time.h>
-#include <sys/time.h>
 #include <assert.h>
 #include <string.h>
 
 #define XSTR(S) #S
 #define STR(S) XSTR(S)
+
+#if !defined(TOOLNAME)
+#define TOOLNAME tool
+#endif
 
 static void print_value(adiak_value_t *val, adiak_datatype_t *t)
 {
@@ -35,7 +43,14 @@ static void print_value(adiak_value_t *val, adiak_datatype_t *t)
       case adiak_date: {
          char datestr[512];
          signed long seconds_since_epoch = (signed long) val->v_long;
+#if defined(_MSC_VER)
+         __time64_t s = (__time64_t) seconds_since_epoch;       
+         struct tm *loc, loc_tmp;
+         _localtime64_s(&loc_tmp, &s);
+         loc = &loc_tmp;
+#else
          struct tm *loc = localtime(&seconds_since_epoch);
+#endif
          strftime(datestr, sizeof(datestr), "%a, %d %b %Y %T %z", loc);
          printf("%s", datestr);
          break;
@@ -126,9 +141,10 @@ static void print_on_flush(const char *name, int category, const char *subcatego
    adiak_list_namevals(1, adiak_category_all, print_nameval, NULL);
 }
 
-
-static void onload() __attribute__((constructor));
-static void onload()
+#if !defined(_MSC_VER)
+void onload() __attribute__((constructor));
+#endif
+void onload()
 {
    if (strcmp(STR(TOOLNAME), "TOOL3") == 0)
       adiak_register_cb(1, adiak_control, print_on_flush, 0, NULL);

@@ -203,7 +203,7 @@ namespace adiak
                   return false;
             }
             element_type<T>::set(*value, valarray);
-            dtype->num_elements = c.size();
+            dtype->num_elements = (int) c.size();
             return true;
          }
       };
