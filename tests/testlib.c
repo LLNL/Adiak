@@ -132,6 +132,9 @@ static void print_nameval(const char *name, int category, const char *subcategor
    printf("%s - %s: ", STR(TOOLNAME), name);
    print_value(value, t);
    printf("\n");
+   (void) category;
+   (void) subcategory;
+   (void) opaque_value;
 }
 
 static void print_on_flush(const char *name, int category, const char *subcategory, adiak_value_t *value, adiak_datatype_t *t, void *opaque_value)
@@ -139,6 +142,11 @@ static void print_on_flush(const char *name, int category, const char *subcatego
    if (strcmp(name, "fini") != 0)
       return;
    adiak_list_namevals(1, adiak_category_all, print_nameval, NULL);
+   (void) category;
+   (void) subcategory;
+   (void) value;
+   (void) t;
+   (void) opaque_value;
 }
 
 #if !defined(_MSC_VER)

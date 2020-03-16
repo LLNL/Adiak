@@ -74,17 +74,19 @@ void dowork()
 
 extern void onload();
 
+#if defined(_MSC_VER)
+static volatile int call_onload_manually = 1;
+#else
+static volatile int call_onload_manually = 0;
+#endif
+
 int main(int argc, char* argv[])
 {
-#if defined(_MSC_VER)
-   onload();
-#endif
+   if (call_onload_manually)
+      onload();
 
 #if defined(USE_MPI)
    MPI_Comm world = MPI_COMM_WORLD;
-#endif
-
-#if defined(USE_MPI)
    MPI_Init(&argc, &argv);
    adiak_init(&world);
 #else
