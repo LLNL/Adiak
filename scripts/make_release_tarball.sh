@@ -6,7 +6,7 @@
 ##############################################################################
 
 TAR_CMD=gtar
-VERSION=0.2.0
+VERSION=0.2.1
 
 origdir=`pwd`
 rootdir=`git rev-parse --show-toplevel`
