@@ -204,3 +204,10 @@ int adksys_mpi_init(void *mpi_communicator_p)
    adiak_communicator = *((MPI_Comm *) mpi_communicator_p);
    return 0;
 }
+
+int adksys_mpi_initialized()
+{
+   int result = 0;
+   MPI_Initialized(&result);
+   return result;
+}

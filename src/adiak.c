@@ -259,7 +259,7 @@ void adiak_init(void *mpi_communicator_p)
    adiak_common_init();
 
 #if (USE_MPI)
-   if (mpi_communicator_p) {
+   if (mpi_communicator_p && adksys_mpi_initialized()) {
       adksys_mpi_init(mpi_communicator_p);
       adiak_config->reportable_rank = adksys_reportable_rank();
       adiak_config->use_mpi = 1;
