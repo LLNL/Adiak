@@ -12,8 +12,18 @@
 extern "C" {
 #endif
 
-#define ADIAK_VERSION 1
-#define ADIAK_MINOR_VERSION 0
+#define ADIAK_VERSION 0
+#define ADIAK_MINOR_VERSION 2
+#define ADIAK_POINT_VERSION 0   
+
+// ADIAK DATA CATEGORIES 
+// Please treat values through 1000 as reserved. 1001 onward can be used as
+// custom categories
+#define adiak_category_unset 0
+#define adiak_category_all 1
+#define adiak_general 2     /* General information about runs */
+#define adiak_performance 3 /* Information about performance */
+#define adiak_control 4     /* Control and meta commands (e.g., flush) */
 
 typedef enum {
    adiak_numerical_unset = 0,
@@ -42,13 +52,7 @@ typedef enum {
    adiak_tuple        /* adiak_value string (typestring1, typestring2, ..., typestringN), passed as an N integer */
 } adiak_type_t;
 
-typedef enum {
-   adiak_category_unset = 0,
-   adiak_category_all,
-   adiak_general,     /* General information about runs */
-   adiak_performance, /* Information about performance */
-   adiak_control,     /* Control and meta commands (e.g., flush) */
-} adiak_category_t;
+typedef int adiak_category_t;
 
 typedef struct adiak_datatype_t {
    adiak_type_t dtype;
@@ -98,7 +102,7 @@ void adiak_fini();
  * struct { int pos; const char *val; } letters[3] = { {1, 'a'}, {2, 'b'}, {3, 'c} }
  * adiak_namevalue("alphabet", adiak_general, "[(%u, %s)]", letters, 3, 2);
  **/
-int adiak_namevalue(const char *name, adiak_category_t category, const char *subcategory, const char *typestr, ...);
+int adiak_namevalue(const char *name, int category, const char *subcategory, const char *typestr, ...);
 
 /**
  * adiak_new_datatype construts a new adiak_datatype_t that can be
@@ -110,7 +114,7 @@ adiak_datatype_t *adiak_new_datatype(const char *typestr, ...);
  * Similar to adiak_namevalue, adiak_raw_namevalue registers a new name/value pair,
  * but with an already constructed datatype and value.
  **/
-int adiak_raw_namevalue(const char *name, adiak_category_t category, const char *subcategory,
+int adiak_raw_namevalue(const char *name, int category, const char *subcategory,
                         adiak_value_t *value, adiak_datatype_t *type);
 
 int adiak_user();  /* Makes a 'user' name/val with the real name of who's running the job */
@@ -119,6 +123,7 @@ int adiak_launchdate(); /* Makes a 'launchdate' name/val with the date of when t
 int adiak_launchday(); /* Makes a 'launchday' name/val with date when this job started, but truncated to midnight */
 int adiak_executable(); /* Makes an 'executable' name/val with the executable file for this job */ 
 int adiak_executablepath(); /* Makes an 'executablepath' name/value with the full executable file path. */
+int adiak_workdir(); /* Makes a 'working_directory' name/val with the cwd for this job */
 int adiak_libraries(); /* Makes a 'libraries' name/value with the set of shared library paths. */
 int adiak_cmdline(); /* Makes a 'cmdline' name/val string set with the command line parameters */
 int adiak_hostname(); /* Makes a 'hostname' name/val with the hostname */

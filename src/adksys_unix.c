@@ -31,3 +31,12 @@ int adksys_get_names(char **uid, char **user)
    }
    return 0;
 }
+
+int adksys_get_cwd(char *cwd, size_t max_size)
+{
+   char *p;
+   p = getcwd(cwd, max_size);
+   if (!p)
+      return -1;
+   return 0;
+}

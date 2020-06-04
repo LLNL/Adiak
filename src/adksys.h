@@ -6,6 +6,8 @@
 #if !defined(ADKSYS_H_)
 #define ADKSYS_H_
 
+#include <sys/time.h> /* struct timeval */
+
 int adksys_get_libraries(char ***libraries, int *libraries_size, int *libnames_need_free);
 int adksys_hostlist(char ***out_hostlist_array, int *out_num_hosts, char **out_name_buffer, int all_ranks);
 int adksys_jobsize(int *size);
@@ -19,6 +21,7 @@ int adksys_get_executable(char *outpath, size_t outpath_size);
 int adksys_get_cmdline_buffer(char **output_buffer, int *output_size);
 int adksys_get_names(char **uid, char **user);
 int adksys_mpi_initialized();
+int adksys_get_cwd(char *cwd, size_t max_size);
 void *adksys_get_public_adiak_symbol();
 
 #endif
