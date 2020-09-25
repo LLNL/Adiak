@@ -25,6 +25,9 @@ void dowork(struct timeval start)
    result = adiak_namevalue("problemsize", adiak_general, NULL, "%lu", 14000);
    if (result != 0) printf("return: %d\n\n", result);
 
+   result = adiak_namevalue("countdown", adiak_general, NULL, "%lld", 9876543210);
+   if (result != 0) printf("return: %d\n\n", result);
+
    result = adiak_user();
    if (result != 0) printf("return: %d\n\n", result);
    

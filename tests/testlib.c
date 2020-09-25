@@ -23,6 +23,12 @@ static void print_value(adiak_value_t *val, adiak_datatype_t *t)
       case adiak_ulong:
          printf("%lu", (unsigned long) val->v_long);
          break;
+      case adiak_longlong:
+         printf("%lld", val->v_longlong);
+         break;
+      case adiak_ulonglong:
+         printf("%llu", (unsigned long long) val->v_longlong);
+         break;
       case adiak_int:
          printf("%d", val->v_int);
          break;

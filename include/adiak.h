@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 #define ADIAK_VERSION 0
-#define ADIAK_MINOR_VERSION 2
-#define ADIAK_POINT_VERSION 1
+#define ADIAK_MINOR_VERSION 3
+#define ADIAK_POINT_VERSION 0
 
 // ADIAK DATA CATEGORIES 
 // Please treat values through 1000 as reserved. 1001 onward can be used as
@@ -35,7 +35,7 @@ typedef enum {
 
 typedef enum {
    adiak_type_unset = 0,
-   adiak_long,        /* adiak_value string: %ld (implies adiak_rational) */
+   adiak_long,        /* adiak_value string: %ld (implies rational) */
    adiak_ulong,       /* adiak_value string: %lu (implies rational) */   
    adiak_int,         /* adiak_value string: %d (implies rational) */
    adiak_uint,        /* adiak_value string: %u (implies rational) */
@@ -49,7 +49,9 @@ typedef enum {
    adiak_range,       /* adiak_value string <typestring> (implies categorical), */
    adiak_set,         /* adiak_value string [typestring], passed as a size integer */
    adiak_list,        /* adiak_value string {typestring}, passed as a size integer */
-   adiak_tuple        /* adiak_value string (typestring1, typestring2, ..., typestringN), passed as an N integer */
+   adiak_tuple,       /* adiak_value string (typestring1, typestring2, ..., typestringN), passed as an N integer */
+   adiak_longlong,    /* adiak_value string: %lld (implies rational) */
+   adiak_ulonglong    /* adiak_value string: %llu (implies rational) */
 } adiak_type_t;
 
 typedef int adiak_category_t;
@@ -70,6 +72,7 @@ typedef union adiak_value_t {
    double v_double;
    void *v_ptr;
    union adiak_value_t *v_subval;
+   long long v_longlong;
 } adiak_value_t;
    
 static const adiak_datatype_t adiak_unset_datatype = { adiak_type_unset, adiak_numerical_unset, 0, 0, NULL };
