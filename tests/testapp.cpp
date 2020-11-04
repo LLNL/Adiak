@@ -73,6 +73,9 @@ void dowork(struct timeval start)
    result = adiak::value("problemsize", 14000);
    if (!result) printf("return: %d\n\n", result);
 
+   result = adiak::value("countdown", static_cast<long long>(9876543210));
+   if (!result) printf("return: %d\n\n", result);
+
    result = adiak::value("allnames", names);
    if (!result) printf("return: %d\n\n", result);
 

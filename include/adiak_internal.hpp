@@ -44,6 +44,14 @@ namespace adiak
          static const adiak_type_t dtype = adiak_ulong;
          static void set(adiak_value_t &v, unsigned long p) { v.v_long = p; }
       };
+      template<> struct element_type<long long> {
+         static const adiak_type_t dtype = adiak_longlong;
+         static void set(adiak_value_t &v, long long p) { v.v_longlong = p; }
+      };
+      template<> struct element_type<unsigned long long> {
+         static const adiak_type_t dtype = adiak_ulonglong;
+         static void set(adiak_value_t &v, unsigned long long p) { v.v_longlong = p; }
+      };
       template<> struct element_type<int> {
          static const adiak_type_t dtype = adiak_int;
          static void set(adiak_value_t &v, int p) { v.v_int = p; }

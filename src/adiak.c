@@ -55,6 +55,8 @@ static int measure_adiak_cputime;
 
 static adiak_datatype_t base_long = { adiak_long, adiak_rational, 0, 0, NULL };
 static adiak_datatype_t base_ulong = { adiak_ulong, adiak_rational, 0, 0, NULL };
+static adiak_datatype_t base_longlong = { adiak_longlong, adiak_rational, 0, 0, NULL };
+static adiak_datatype_t base_ulonglong = { adiak_ulonglong, adiak_rational, 0, 0, NULL };
 static adiak_datatype_t base_int = { adiak_int, adiak_rational, 0, 0, NULL };
 static adiak_datatype_t base_uint = { adiak_uint, adiak_rational, 0, 0, NULL };
 static adiak_datatype_t base_double = { adiak_double, adiak_rational, 0, 0, NULL };
@@ -152,6 +154,10 @@ int adiak_namevalue(const char *name, int category, const char *subcategory, con
       case adiak_uint:
          value->v_int = va_arg(ap, int);
          break;
+      case adiak_longlong:
+      case adiak_ulonglong:
+         value->v_longlong = va_arg(ap, long long);
+         break;
       case adiak_double:
          value->v_double = va_arg(ap, double);
          break;
@@ -196,6 +202,8 @@ adiak_numerical_t adiak_numerical_from_type(adiak_type_t dtype)
          return adiak_numerical_unset;
       case adiak_long:
       case adiak_ulong:
+      case adiak_longlong:
+      case adiak_ulonglong:
       case adiak_int:
       case adiak_uint:
       case adiak_double:
@@ -371,6 +379,11 @@ static adiak_type_t toplevel_type(const char *typestr) {
             cur++;
             if (*cur == 'd') return adiak_long;
             if (*cur == 'u') return adiak_ulong;
+            if (*cur == 'l') {
+               cur++;
+               if (*cur == 'd') return adiak_longlong;
+               if (*cur == 'u') return adiak_ulonglong;
+            }
             return adiak_type_unset;
          case 'd': return adiak_int;
          case 'u': return adiak_uint;
@@ -403,6 +416,10 @@ adiak_datatype_t *adiak_get_basetype(adiak_type_t t)
          return &base_long;
       case adiak_ulong:
          return &base_ulong;
+      case adiak_longlong:
+         return &base_longlong;
+      case adiak_ulonglong:
+         return &base_ulonglong;
       case adiak_int:
          return &base_int;
       case adiak_uint:
@@ -453,6 +470,8 @@ static void free_adiak_value_worker(adiak_datatype_t *t, adiak_value_t *v) {
       case adiak_type_unset:
       case adiak_long:
       case adiak_ulong:
+      case adiak_longlong:
+      case adiak_ulonglong:
       case adiak_int:
       case adiak_uint:
       case adiak_double:
@@ -500,6 +519,10 @@ static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *p
       case adiak_date:
          target->v_long = *((long *) ptr);
          return sizeof(long);
+      case adiak_longlong:
+      case adiak_ulonglong:
+         target->v_longlong = *((long long *) ptr);
+         return sizeof(long long);
       case adiak_int:
       case adiak_uint:
          target->v_int = *((int *) ptr);
@@ -545,7 +568,7 @@ static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_s
 {
    adiak_datatype_t *t = NULL;
    int cur = typestr_start;
-   int end_brace, i, is_long = 0;
+   int end_brace, i, is_long = 0, is_longlong = 0;
    
    if (!typestr)
       goto error;
@@ -611,13 +634,17 @@ static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_s
       if (typestr[cur] == 'l') {
          is_long = 1;
          cur++;
+         if (typestr[cur] == 'l') {
+            is_longlong = 1;
+            cur++;
+         }
       }
       switch (typestr[cur]) {
          case 'd':
-            t = is_long ? &base_long : &base_int;
+            t = is_long ? (is_longlong ? &base_longlong  : &base_long)  : &base_int;
             break;
          case 'u':
-            t = is_long ? &base_ulong : &base_uint;
+            t = is_long ? (is_longlong ? &base_ulonglong : &base_ulong) : &base_uint;
             break;
          case 'f':
             t = &base_double;
@@ -1074,6 +1101,12 @@ static int adiak_type_string_helper(adiak_datatype_t *t, char *str, int len, int
          break;
       case adiak_ulong:
          simple = long_form ? "unsigned long" : "%lu";
+         break;
+      case adiak_longlong:
+         simple = long_form ? "long long" : "%lld";
+         break;
+      case adiak_ulonglong:
+         simple = long_form ? "unsigned long long" : "%llu";
          break;
       case adiak_int:
          simple = long_form ? "int" : "%d";
