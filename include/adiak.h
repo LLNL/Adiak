@@ -16,6 +16,8 @@ extern "C" {
 #define ADIAK_MINOR_VERSION 3
 #define ADIAK_POINT_VERSION 0
 
+#define ADIAK_HAVE_LONGLONG 1
+
 // ADIAK DATA CATEGORIES 
 // Please treat values through 1000 as reserved. 1001 onward can be used as
 // custom categories
