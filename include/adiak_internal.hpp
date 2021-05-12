@@ -289,9 +289,9 @@ namespace adiak
 
       template <typename T>
       struct set_tuple_type<T, 0> {
-         static void settype(adiak_datatype_t **dtypes) {
+         static void settype(adiak_datatype_t **/*dtypes*/) {
          }
-         static bool setvalue(T &c, adiak_value_t *values, adiak_datatype_t *dtype) {
+         static bool setvalue(T &/*c*/, adiak_value_t */*values*/, adiak_datatype_t */*dtype*/) {
             return true;
          }
       };

@@ -993,9 +993,9 @@ int adiak_hostlist()
 {
    char **hostlist_array = NULL;
    int num_hosts = 0, result = -1;
-   char *name_buffer = NULL;
 
 #if defined(USE_MPI)
+   char *name_buffer = NULL;
    if (adiak_config->use_mpi)
       result = adksys_hostlist(&hostlist_array, &num_hosts, &name_buffer, adiak_config->report_on_all_ranks);
 #endif
@@ -1012,9 +1012,9 @@ int adiak_num_hosts()
 {
    char **hostlist_array = NULL;
    int num_hosts = 0, result = -1;
-   char *name_buffer = NULL;
 
 #if defined(USE_MPI)
+   char *name_buffer = NULL;
    if (adiak_config->use_mpi)
       result = adksys_hostlist(&hostlist_array, &num_hosts, &name_buffer, adiak_config->report_on_all_ranks);
 #endif
@@ -1029,9 +1029,10 @@ int adiak_num_hosts()
 
 int adiak_job_size()
 {
-   int result = -1, size = 1;
+   int size = 1;
 
 #if defined(USE_MPI)
+   int result = -1;
    if (adiak_config->use_mpi)
       result = adksys_jobsize(&size);
    if (result == -1)
