@@ -79,7 +79,13 @@ void dowork(struct timeval start)
    if (result != 0) printf("return: %d\n\n", result);
 }
 
-int main(int argc, char *argv[])
+int main(
+#if defined(USE_MPI)
+         int argc, char *argv[]
+#else
+         int UNUSED(argc), char **UNUSED(argv)
+#endif
+         )
 {
 #if defined(USE_MPI)
    MPI_Comm world = MPI_COMM_WORLD;

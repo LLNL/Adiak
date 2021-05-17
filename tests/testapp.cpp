@@ -12,10 +12,13 @@
 
 using namespace std;
 
-void dowork(struct timeval start)
+void dowork(struct timeval
+#if defined(USE_MPI)
+            start
+#endif
+  )
 {
    bool result;
-   struct timeval end;
 
    vector<double> grid;
    grid.push_back(4.5);
@@ -135,7 +138,8 @@ void dowork(struct timeval start)
    if (!result) printf("return: %d\n\n", result);
 #endif
    
-/*   gettimeofday(&end, NULL);
+/* struct timeval end;
+   gettimeofday(&end, NULL);
    result = adiak::value("computetime", &start, &end);
    if (!result) printf("return: %d\n\n", result);*/
    
@@ -147,7 +151,13 @@ void dowork(struct timeval start)
    if (!result) printf("return: %d\n\n", result);   
 }
 
-int main(int argc, char *argv[])
+int main(
+#if defined(USE_MPI)
+  int argc, char *argv[]
+#else
+  int, char **
+#endif
+  )
 {
 #if defined(USE_MPI)
    MPI_Comm world = MPI_COMM_WORLD;
