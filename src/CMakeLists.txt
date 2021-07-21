@@ -28,14 +28,9 @@ install(FILES
         DESTINATION include)
 
 install(TARGETS
-  adiak
+  adiak ${adiak_mpi_depends}
   EXPORT adiak-targets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-if (MPI_FOUND)
-  set_target_properties(mpi PROPERTIES EXPORT_NAME adiak::mpi)
-  install(TARGETS mpi EXPORT adiak-targets)
-endif()
-
-install(EXPORT adiak-targets DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/adiak)
+install(EXPORT adiak-targets NAMESPACE adiak:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/adiak)

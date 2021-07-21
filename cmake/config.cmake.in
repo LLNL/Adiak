@@ -2,11 +2,9 @@
 
 set_and_check(adiak_INCLUDE_DIR "@PACKAGE_adiak_INSTALL_INCLUDE_DIR@")
 
-if (NOT TARGET adiak)
-  include(${CMAKE_CURRENT_LIST_DIR}/adiak-targets.cmake)
-endif()
+include(${CMAKE_CURRENT_LIST_DIR}/adiak-targets.cmake)
 
 set(adiak_INCLUDE_DIRS ${adiak_INCLUDE_DIR})
-set(adiak_LIBRARIES adiak)
+set(adiak_LIBRARIES adiak::adiak)
 
 check_required_components(adiak)
