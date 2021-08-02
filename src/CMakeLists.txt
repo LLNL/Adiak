@@ -1,4 +1,4 @@
-include_directories(.)
+  include_directories(.)
 include_directories(../include)
 
 set(adiak_public_headers ../include/adiak.h ../include/adiak.hpp ../include/adiak_internal.hpp ../include/adiak_tool.h)
@@ -28,9 +28,9 @@ install(FILES
         DESTINATION include)
 
 install(TARGETS
-  adiak
+  adiak ${adiak_mpi_depends}
   EXPORT adiak-targets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-install(EXPORT adiak-targets DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/adiak)
+install(EXPORT adiak-targets NAMESPACE adiak:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/adiak)
