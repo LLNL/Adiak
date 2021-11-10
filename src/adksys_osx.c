@@ -5,9 +5,23 @@
 
 #include "adksys.h"
 
+#include <unistd.h>
+
+#include <libproc.h>
+
 int adksys_starttime(struct timeval *tv)
 {
-   return -1;
+   pid_t pid;
+   struct proc_bsdinfo proc;
+   pid = getpid();
+   int st = proc_pidinfo(pid, PROC_PIDTBSDINFO, 0,
+                         &proc, PROC_PIDTBSDINFO_SIZE);
+   if (st != PROC_PIDTBSDINFO_SIZE) {
+     return -1;
+   }
+   tv->tv_sec = proc.pbi_start_tvsec;
+   tv->tv_usec = proc.pbi_start_tvusec;
+   return 0;
 }
 
 int adksys_get_executable(char *outpath, size_t outpath_size)
