@@ -22,6 +22,9 @@ blt_add_library( NAME adiak
                  HEADERS ${adiak_public_headers}
                  SOURCES adiak.c ${adiak_sys_sources} ${adiak_mpi_source}
                  DEPENDS_ON ${adiak_mpi_depends})
+target_include_directories(adiak
+  PUBLIC
+  "$<INSTALL_INTERFACE:include>")
 
 install(FILES
         ${adiak_public_headers}
