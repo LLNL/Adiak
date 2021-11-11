@@ -17,8 +17,8 @@ int adksys_get_libraries(char*** libraries, int* libraries_size, int* libnames_n
    HMODULE *module_handles = NULL;
    HANDLE proc;
    int fresult = -1, libs_size = 0, nresult;
-   DWORD bytes_needed;
-   char** lib_names = NULL, lib_name_buffer[MAX_PATH];
+   DWORD bytes_needed = 0;
+   char** lib_names = NULL, lib_name_buffer[4096];
    
    proc = GetCurrentProcess();
    if (!proc)
@@ -29,7 +29,7 @@ int adksys_get_libraries(char*** libraries, int* libraries_size, int* libnames_n
       goto done;
 
    module_handles = (HMODULE *) malloc(bytes_needed);
-   if (!result)
+   if (!module_handles)
       goto done;
 
    result = EnumProcessModules(proc, module_handles, bytes_needed, &bytes_needed);
@@ -38,6 +38,9 @@ int adksys_get_libraries(char*** libraries, int* libraries_size, int* libnames_n
 
    libs_size = bytes_needed / sizeof(HMODULE);
    lib_names = (char**) malloc(libs_size * sizeof(char*));
+   if (!lib_names)
+      goto done;
+
    memset(lib_names, 0, libs_size * sizeof(char*));
    
    for (int i = 0; i < libs_size; i++) {
