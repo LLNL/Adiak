@@ -135,6 +135,7 @@ static int gethostlist(char **hostlist, int *num_hosts, int *max_hostlen, int al
        *hostlist = (char *) malloc(hostlist_size);
    MPI_Bcast(*hostlist, hostlist_size, MPI_CHAR, 0, adiak_communicator);
 
+   (void) all_ranks;
    return 0;
 }
 
