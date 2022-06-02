@@ -99,6 +99,7 @@ static int gethostlist(char **hostlist, int *num_hosts, int *max_hostlen, int al
    MPI_Comm hostcomm;
    char name[MAX_HOSTNAME_LEN], *firstdot;
    int namelen, hostlist_size;
+   (void) all_ranks;
 
    *hostlist = NULL;
    memset(name, 0, MAX_HOSTNAME_LEN);

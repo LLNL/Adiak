@@ -53,7 +53,7 @@ void *adksys_get_public_adiak_symbol()
    void *result;
    
    dlerror();
-   result = dlsym(RTLD_DEFAULT, "public_adiak");
+   result = dlsym(RTLD_DEFAULT, "adiak_public");
    if (dlerror())
       return NULL;
    return result;
