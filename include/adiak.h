@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 #define ADIAK_VERSION 0
-#define ADIAK_MINOR_VERSION 3
-#define ADIAK_POINT_VERSION 0
+#define ADIAK_MINOR_VERSION 2
+#define ADIAK_POINT_VERSION 2
 
 #define ADIAK_HAVE_LONGLONG 1
 
