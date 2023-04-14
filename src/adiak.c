@@ -1198,6 +1198,7 @@ char *adiak_type_to_string(adiak_datatype_t *t, int long_form)
 
    buffer = (char *) malloc(len + 1);
    len2 = adiak_type_string_helper(t, buffer, len+1, 0, long_form, 0);
+   (void)len2;
    assert(len == len2);
    buffer[len] = '\0';
 
