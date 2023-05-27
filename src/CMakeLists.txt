@@ -1,6 +1,3 @@
-  include_directories(.)
-include_directories(../include)
-
 set(adiak_public_headers ../include/adiak.h ../include/adiak.hpp ../include/adiak_internal.hpp ../include/adiak_tool.h)
 
 if (APPLE)
@@ -24,6 +21,7 @@ blt_add_library( NAME adiak
                  DEPENDS_ON ${adiak_mpi_depends})
 target_include_directories(adiak
   PUBLIC
+  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include>")
 
 install(FILES
