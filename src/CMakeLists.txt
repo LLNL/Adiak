@@ -1,24 +1,42 @@
-set(adiak_public_headers ../include/adiak.h ../include/adiak.hpp ../include/adiak_internal.hpp ../include/adiak_tool.h)
+set(adiak_public_headers
+  ../include/adiak.h
+  ../include/adiak.hpp
+  ../include/adiak_internal.hpp
+  ../include/adiak_tool.h)
+
+set(adiak_sources
+  adiak.c)
 
 if (APPLE)
-set(adiak_sys_sources adksys_posix.c adksys_unix.c adksys_osx.c)
+  list(APPEND adiak_sources
+    adksys_posix.c
+    adksys_unix.c
+    adksys_osx.c)
 elseif (UNIX)
-set(adiak_sys_sources adksys_glibc.c adksys_posix.c adksys_procfs.c adksys_unix.c)
+  list(APPEND adiak_sources
+    adksys_glibc.c
+    adksys_posix.c
+    adksys_procfs.c
+    adksys_unix.c)
+  list(APPEND adiak_dependencies
+    ${CMAKE_DL_LIBS})
 endif ()
 
 if (MPI_FOUND)
-set(adiak_mpi_source adksys_mpi.c)
-add_definitions("-DUSE_MPI")
-set(adiak_mpi_depends mpi)
-else()
-set(adiak_mpi_source)
-set(adiak_mpi_depends)
+  list(APPEND adiak_sources
+    adksys_mpi.c)
+  add_definitions("-DUSE_MPI")
+  list(APPEND adiak_dependencies
+    mpi)
+  list(APPEND adiak_export_targets
+    mpi)
 endif()
 
 blt_add_library( NAME adiak
                  HEADERS ${adiak_public_headers}
-                 SOURCES adiak.c ${adiak_sys_sources} ${adiak_mpi_source}
-                 DEPENDS_ON ${adiak_mpi_depends})
+                 SOURCES ${adiak_sources}
+                 DEPENDS_ON ${adiak_dependencies})
+
 target_include_directories(adiak
   PUBLIC
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
@@ -29,7 +47,7 @@ install(FILES
         DESTINATION include)
 
 install(TARGETS
-  adiak ${adiak_mpi_depends}
+  adiak ${adiak_export_targets}
   EXPORT adiak-targets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
