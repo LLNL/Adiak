@@ -54,8 +54,14 @@ namespace adiak
 
 #include "adiak_internal.hpp"
 
+/// \brief Adiak C++ API
 namespace adiak
 {
+   /// \addtogroup UserAPI
+   /// \{
+   /// \name C++ user API
+   /// \{
+
    /**
     * \brief Initialize Adiak
     *
@@ -264,6 +270,9 @@ namespace adiak
    inline bool clean() {
       return adiak_clean() == 0;
    }
+
+   /// \}
+   /// \}
 }
 
 #endif

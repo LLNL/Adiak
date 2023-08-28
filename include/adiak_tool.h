@@ -18,6 +18,8 @@ extern "C" {
 #endif
 
 /**
+ * \addtogroup ToolAPI
+ * \{
  * \name Adiak tool API
  * \{
  */
@@ -25,12 +27,17 @@ extern "C" {
 /**
  * \brief Callback function for processing an Adiak name/value pair
  *
+ * This callback function is called once for each queried name/value pair.
+ *
  * \param name Name of the name/value pair
  * \param category The Adiak category, e.g. \ref adiak_general
  * \param subcategory Optional user-defined sub-category. Can be NULL.
- * \param value The value of the name/value pair
- * \param t The datatype specification of the name/value pair
+ * \param value The value of the name/value pair. Refer to \ref adiak_value_t to see which
+ *   union value to choose based on the datatype \a t.
+ * \param t The datatype specification of the name/value pair.
  * \param opaque_value Optional user-defined pass-through argument
+ *
+ * \sa adiak_register_cb, adiak_list_namevals
  */
 typedef void (*adiak_nameval_cb_t)(const char *name, int category, const char *subcategory, adiak_value_t *value, adiak_datatype_t *t, void *opaque_value);
 
@@ -49,7 +56,7 @@ typedef void (*adiak_nameval_cb_t)(const char *name, int category, const char *s
 void adiak_register_cb(int adiak_version, int category, adiak_nameval_cb_t nv, int report_on_all_ranks, void *opaque_val);
 
 /**
- * \brief Iterate over currently set Adiak name/value pairs
+ * \brief Iterate over the name/value pairs currently registered with Adiak
  *
  * Iterates over all currently set name/value pairs of \a category and invokes the callback
  * function \a nv for each name/value pair.
@@ -58,7 +65,7 @@ void adiak_register_cb(int adiak_version, int category, adiak_nameval_cb_t nv, i
  * \param[in] category The Adiak category (e.g., \ref adiak_general) to capture.
  *   Callbacks will only be invoked for name/values of \a category. Can be
  *   \ref adiak_category_all to capture all name/value pairs.
- * \param[in] nv User-provided callback function.
+ * \param[in] nv Pointer to the user-provided callback function.
  * \param[in] opaque_val User-provided value passed through to the callback function.
  */
 void adiak_list_namevals(int adiak_version, int category, adiak_nameval_cb_t nv, void *opaque_val);
@@ -67,9 +74,11 @@ void adiak_list_namevals(int adiak_version, int category, adiak_nameval_cb_t nv,
  * \brief Return the type string descriptor for an Adiak datatype specification
  *
  * \param[in] t The Adiak datatype specification
- * \param[in] long_form If != 0, return a more descriptive form
+ * \param[in] long_form If non-zero, the string will be human readable, such as "set of int".
+ *   If zero, the string will be in the printf-style format described in \ref adiak_type_t.
+ *   documentation, such as "[%d]".
  *
- * \note The user must free the returned string pointer.
+ * \note The returned string is malloc'd. The user must free the returned string pointer.
  */
 char *adiak_type_to_string(adiak_datatype_t *t, int long_form);
 
@@ -85,6 +94,7 @@ char *adiak_type_to_string(adiak_datatype_t *t, int long_form);
 int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **value, int *category, const char **subcat);
 
 /**
+ * \}
  * \}
  */
 

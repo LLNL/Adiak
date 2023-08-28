@@ -25,7 +25,9 @@ extern "C" {
 #define ADIAK_HAVE_LONGLONG 1
 
 /**
- * \name Adiak C user API
+ * \addtogroup UserAPI
+ * \{
+ * \name Data type representation
  * \{
  */
 
@@ -63,7 +65,7 @@ typedef enum {
  * values of the corresponding type.
  */
 typedef enum {
-   adiak_type_unset = 0,
+   adiak_type_unset = 0, /**< Can be used to un-set a previously set name/value pair */
    adiak_long,        /**< typestring: "%ld" (implies rational) */
    adiak_ulong,       /**< typestring: "%lu" (implies rational) */
    adiak_int,         /**< typestring: "%d" (implies rational) */
@@ -96,7 +98,7 @@ typedef struct adiak_datatype_t {
    adiak_type_t dtype;
    /** \brief Value category of this datatype */
    adiak_numerical_t numerical;
-   /** \brief Number of elements for compound types. */
+   /** \brief Number of elements for compound types (e.g., number of list elements). */
    int num_elements;
    /** \brief Number of sub-types.
     *
@@ -107,7 +109,33 @@ typedef struct adiak_datatype_t {
    struct adiak_datatype_t **subtype;
 } adiak_datatype_t;
 
-/** \brief Adiak datatype value */
+/** \brief Adiak datatype value
+ *
+ * The adiak_value_t union contains the value part of a name/value pair.
+ * It is used with an adiak_datatype_t, which describes how interpret the
+ * value. The following table describes what union value should be read given
+ * an accompanying adiak_type_t:
+ *
+ * Type            | Union value
+ * ----------------|------------
+ * adiak_long      | v_long
+ * adiak_ulong     | v_long (cast to unsigned long)
+ * adiak_int       | v_int
+ * adiak_uint      | v_int (cast to unsigned int)
+ * adiak_double    | v_double
+ * adiak_date      | v_long (as seconds since epoch)
+ * adiak_timeval   | v_ptr (cast to struct timeval*)
+ * adiak_version   | v_ptr (cast to char*)
+ * adiak_string    | v_ptr (cast to char*)
+ * adiak_catstring | v_ptr (cast to char*)
+ * adiak_path      | v_ptr (cast to char*)
+ * adiak_range     | v_subval (as adiak_value_t[2])
+ * adiak_set       | v_subval (as adiak_value_t array)
+ * adiak_list      | v_subval (as adiak_value_t array)
+ * adiak_tuple     | v_subval (as adiak_value_t array)
+ * adiak_longlong  | v_longlong
+ * adiak_ulonglong | v_longlong (as unsigned long long)
+ */
 typedef union adiak_value_t {
    signed long v_long;
    int v_int;
@@ -122,13 +150,28 @@ typedef union adiak_value_t {
 static const adiak_datatype_t adiak_unset_datatype = { adiak_type_unset, adiak_numerical_unset, 0, 0, NULL };
 
 /**
+ * \}
+ * \}
+ *
+ * \addtogroup UserAPI
+ * \{
+ * \name C user API
+ * \{
+ */
+
+/**
  * \brief Initializes the Adiak interface.
  *
- * When run in an MPI job, adiak takes a communicator pointer used for reducing the data
- * passed to it. This should be called after MPI_Init. When run without MPI adiak_init
- * can be passed NULL.
+ * Must be called by the application before registering name/value pairs.
  *
- * \param mpi_communicator_p Pointer to an MPI communicator for Adiak to use. NULL
+ * In an MPI job, adiak_init takes a pointer to an MPI communicator. MPI_COMM_WORLD
+ * would typically be the correct communicator to pass. The init routine should be
+ * called after MPI_Init has completed from each rank in the MPI job.
+ *
+ * This routine can safely be called multiple times. Subsequent calls have no
+ * effect.
+ *
+ * \param mpi_communicator_p Pointer to an MPI communicator, cast to void*. NULL
  *   if running without MPI.
  */
 void adiak_init(void *mpi_communicator_p);
@@ -136,14 +179,15 @@ void adiak_init(void *mpi_communicator_p);
 /**
  * \brief Finalizes the Adiak interface.
  *
- * adiak_fini should be called before program exit. If using MPI, it should be called before
- * MPI_finalize.
+ * adiak_fini should be called before program exit. In an MPI job, it should be called
+ * before MPI_finalize.
  */
 void adiak_fini();
 
 /**
  * \brief Register a name/value pair with Adiak.
  *
+ * Values are associated with the specified \a name and described by the specified type.
  * The printf-style \a typestr describes the type of the value, which is constructed
  * from the string specifiers shown in \ref adiak_type_t. The varargs contains parameters
  * for the type. The entire type describes how value is encoded. For example:
@@ -156,20 +200,28 @@ void adiak_fini();
  * double gridvalues[] = { 5.4, 18.1, 24.0, 92.8 };
  * adiak_namevalue("gridvals", adiak_general, NULL, "[%f]", gridvalues, 4);
  *
- * struct { int pos; const char *val; } letters[3] = { {1, 'a'}, {2, 'b'}, {3, 'c} }
+ * struct { int pos; const char *val; } letters[3] = { {1, "a"}, {2, "b"}, {3, "c"} };
  * adiak_namevalue("alphabet", adiak_general, NULL, "[(%u, %s)]", letters, 3, 2);
  * \endcode
  *
- * \param name Name of the Adiak name/value pair.
- * \param category One of the Adiak categories (adiak_general, adiak_performance, etc.).
- *   If in doubt, use adiak_general.
- * \param subcategory An optional user-defined sub-category. Can be NULL.
+ * \param name Name of the Adiak name/value pair. Adiak makes a copy of the string, and
+ *   memory associated with it can be freed after this call completes.
+ * \param category Describes how the name/value pair should be categorized. Tools can
+ *   subscribe to a set of categories. Users can use Adiak-provided categories like
+ *   \ref adiak_general, \ref adiak_performance, etc. or create their own. Values <=1000
+ *   are reserved for Adiak. User-defined categories must have a value >1000.
+ *   The \ref adiak_general category is a good default value.
+ * \param subcategory An optional user-defined category string that is passed to
+ *   underlying tools. Can be NULL.
  * \param typestr A printf-style type string describing the datatype of the value.
- *   See \ref adiak_type_t.
- * \param ... The value of the name/value pair. For scalar types and strings,
+ *   As example, the \a typestr could be "%d", "%s", or "[%p]" to describe an integer,
+ *   string, or set-of-paths value, respectively. See \ref adiak_type_t.
+ * \param ... The value of the name/value pair. It is interpreted based on the
+ *   \a typestr. For scalar types and strings,
  *   this is just the value itself. For compound types like arrays or tuples, this
  *   is an array or struct pointer followed by the list dimensions, from the outermost
  *   to the innermost type (see examples above).
+ * \returns On success, returns 0. On a failure, returns -1.
  *
  * There is also a convenient C++ interface for registering values, see adiak::value.
  */
@@ -193,7 +245,12 @@ int adiak_raw_namevalue(const char *name, int category, const char *subcategory,
 int adiak_user();
 /** \brief Makes a 'uid' name/val with the uid of who's running the job */
 int adiak_uid();
-/** \brief Makes a 'launchdate' name/val with the date of when this job started */
+/** \brief Makes a 'launchdate' name/val with the date of when this job started
+ *
+ * Creates an adiak_date value named "launchdate" of the time when this process was started,
+ * but rounded down to the previous midnight at GMT+0. This can be used to group jobs that
+ * ran on the same day.
+ */
 int adiak_launchdate();
 /** \brief Makes a 'launchday' name/val with date when this job started, but truncated to midnight */
 int adiak_launchday();
@@ -227,13 +284,19 @@ int adiak_num_hosts();
 
 /** \brief Flush values through Adiak. Currently unused. */
 int adiak_flush(const char *location);
-/** \brief Clear all adiak name/values. */
+/** \brief Clear all adiak name/values.
+ *
+ * This routine frees all heap memory used by adiak. This includes the cache of all
+ * name/value pairs passed to Adiak. After this call completes, adiak will report it
+ * has no name/value pairs. Adiak should not be used again after this call completes.
+ */
 int adiak_clean();
 
 /** \brief Return the value category for \a dtype */
 adiak_numerical_t adiak_numerical_from_type(adiak_type_t dtype);
 
 /**
+ * \}
  * \}
  */
 
