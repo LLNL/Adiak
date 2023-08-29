@@ -190,7 +190,7 @@ void adiak_fini();
  * Values are associated with the specified \a name and described by the specified type.
  * The printf-style \a typestr describes the type of the value, which is constructed
  * from the string specifiers shown in \ref adiak_type_t. The varargs contains parameters
- * for the type. The entire type describes how value is encoded. For example:
+ * for the type. The entire type describes how the value is encoded. For example:
  *
  * \code
  * adiak_namevalue("numrecords", adiak_general, NULL, "%d", 10);

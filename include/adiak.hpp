@@ -62,27 +62,12 @@ namespace adiak
    /// \name C++ user API
    /// \{
 
-   /**
-    * \brief Initialize Adiak
-    *
-    * adiak::init should be called for MPI programs after MPI_Init has completed and
-    * be passed a valid communicator such as MPI_COMM_WORLD.  You should include mpi.h
-    * before including adiak.hpp if running an MPI job.
-    *
-    * If you pass NULL as a communicator, adiak will behave like it was running in a
-    * single-process job.
-    *
-    * For both MPI and non-MPI jobs call adiak::init before registering any name/value
-    * pairs.
-    */
+   /// \copydoc adiak_init
    inline void init(void *mpi_communicator_p) {
       adiak_init(mpi_communicator_p);
    }
 
-   /**
-    * \brief Call adiak::fini near the end of your job. For MPI programs, do so before a call to
-    * MPI_Finalize()
-    */
+   /// \copydoc adiak_fini
    inline void fini() {
       adiak_fini();
    }
