@@ -10,7 +10,9 @@ Adiak is available through the
 
 When not using Spack, clone Adiak from its
 `Github repository <https://github.com/LLNL/Adiak>`_.
-Configure and install Adiak like so:
+Be sure to clone recursively, since Adiak imports the
+`BLT <https://github.com/LLNL/blt>`_ CMake helper library as a git submodule.
+Configure and install Adiak as needed, for example:
 
 .. code-block:: sh
 
@@ -31,9 +33,9 @@ BUILD_SHARED_LIBS
 Using Adiak in CMake
 ---------------------------------
 
-Adiak installs CMake targets that can be found with a CMake `find_package`
-call. Then, add `adiak::adiak` as a dependency to any executable or library
-that requires Adiak: ::
+Adiak installs CMake targets that can be imported with a CMake ``find_package``
+call. In your CMake script, add ``adiak::adiak`` as a dependency to any executable
+or library that requires Adiak: ::
 
     project(MyApp)
     find_package(adiak REQUIRED)

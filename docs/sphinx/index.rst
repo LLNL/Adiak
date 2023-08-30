@@ -30,6 +30,7 @@ by printf-inspired strings.
 
    GettingAdiak
    BasicUsage
+   ToolsUsingAdiak
    ApplicationAPI
    ToolAPI
 

@@ -63,26 +63,89 @@ typedef enum {
  * The "typestring" values shown below are the printf-style type descriptors
  * that must be passed as the \a typestr argument in \ref adiak_namevalue for
  * values of the corresponding type.
+ *
+ * Type             | Typestring   | Value category
+ * -----------------|--------------|---------------
+ * adiak_long       | "%ld"        | rational
+ * adiak_ulong      | "%lu"        | rational
+ * adiak_int        | "%d"         | rational
+ * adiak_uint       | "%u"         | rational
+ * adiak_double     | "%f"         | rational
+ * adiak_date       | "%D"         | interval
+ * adiak_timeval    | "%t"         | interval
+ * adiak_version    | "%v"         | ordinal
+ * adiak_string     | "%s"         | ordinal
+ * adiak_catstring  | "%r"         | categorical
+ * adiak_path       | "%p"         | categorical
+ * adiak_range      | "<subtype>"  | categorical
+ * adiak_set        | "[subtype]"  | categorical
+ * adiak_list       | "{subtype}"  | categorical
+ * adiak_tuple      | "(t1,t2,..)" | categorical
+ * adiak_longlong   | "%lld"       | rational
+ * adiak_ulonglong  | "%llu"       | rational
  */
 typedef enum {
-   adiak_type_unset = 0, /**< Can be used to un-set a previously set name/value pair */
-   adiak_long,        /**< typestring: "%ld" (implies rational) */
-   adiak_ulong,       /**< typestring: "%lu" (implies rational) */
-   adiak_int,         /**< typestring: "%d" (implies rational) */
-   adiak_uint,        /**< typestring: "%u" (implies rational) */
-   adiak_double,      /**< typestring: "%f" (implies rational) */
-   adiak_date,        /**< typestring: "%D" (implies interval), passed as a signed long in seconds since epoch */
-   adiak_timeval,     /**< typestring: "%t" (implies interval), passed as a 'struct timeval *' */
-   adiak_version,     /**< typestring: "%v" (implies oridinal), passed as a char*  */
-   adiak_string,      /**< typestring: "%s" (implies oridinal), passed as a char*  */
-   adiak_catstring,   /**< typestring: "%r" (implies categorical), passed as a char* */
-   adiak_path,        /**< typestring: "%p" (implies categorical), passed as a char* */
-   adiak_range,       /**< typestring: "<subtype>" (implies categorical), */
-   adiak_set,         /**< typestring: "[subtype]", passed as a size integer */
-   adiak_list,        /**< typestring: "{subtype}", passed as a size integer */
-   adiak_tuple,       /**< typestring: "(subtype1, subtype2, ..., subtypeN)", passed as an N integer */
-   adiak_longlong,    /**< typestring: "%lld" (implies rational) */
-   adiak_ulonglong    /**< typestring: "%llu" (implies rational) */
+   /** \brief A placeholder for uninitialized types */
+   adiak_type_unset = 0,
+   adiak_long,
+   adiak_ulong,
+   adiak_int,
+   adiak_uint,
+   adiak_double,
+   /** \brief A date. Passed as a signed long in seconds since epoch. */
+   adiak_date,
+   /** \brief A time interval. Passed as a <tt> struct timeval* </tt> */
+   adiak_timeval,
+   /** \brief A program version number. Passed as \c char*. */
+   adiak_version,
+   adiak_string,
+   /** \brief A categorical (i.e., unordered) string. Passed as \c char*. */
+   adiak_catstring,
+   /** \brief A file path. Passed as \c char*. */
+   adiak_path,
+   /** \brief A compound type representing a range of values.
+    *
+    * Another typestring should be passed between the "< >" arrow brackets,
+    * e.g. "<%d>" for an interval of ints.
+    *
+    * The values passed to the C API should be passed as two values
+    * v1 and v2 representing the range [v1, v2). In the C++ interface,
+    * use the overloaded \c adiak::value() function that takes two value
+    * parameters.
+    */
+   adiak_range,
+   /** \brief A compound type representing a set of values.
+    *
+    * The set is unordered and should not contain duplicates. Another typestring
+    * should be passed between the "[ ]" square brackets, e.g. "[%u]" for a set
+    * of uints. The values passed to the C interface should be a C-style array
+    * of the subtype and a size integer.
+    *
+    * The value passed to the C++ interface should be a \c std::set with the
+    * subtype.
+    */
+   adiak_set,
+   /** \brief A compound type representing a list of values.
+    *
+    * The list order is preserved. Another typestring
+    * should be passed between the "{ }" braces, e.g. "{%s}" for a list
+    * of strings. The values passed to the C interface should be a C-style
+    * array of the subtype and a size integer.
+    *
+    * The value passed to the C++ interface should be a \c std::vector or
+    * a \c std::list with the subtype.
+    */
+   adiak_list,
+   /** \brief A compound type representing a tuple.
+    *
+    * N typestrings should be passed between the "( )" parentheses, e.g.
+    * "(%d,%s,%p)" for a (int,string,path) tuple. In the C interface, the
+    * values should be passed as N values. In the C++ interface, the value
+    * should be a \c std::tuple with N elements.
+    */
+   adiak_tuple,
+   adiak_longlong,
+   adiak_ulonglong
 } adiak_type_t;
 
 typedef int adiak_category_t;
@@ -109,12 +172,12 @@ typedef struct adiak_datatype_t {
    struct adiak_datatype_t **subtype;
 } adiak_datatype_t;
 
-/** \brief Adiak datatype value
+/** \brief Adiak value union
  *
  * The adiak_value_t union contains the value part of a name/value pair.
- * It is used with an adiak_datatype_t, which describes how interpret the
- * value. The following table describes what union value should be read given
- * an accompanying adiak_type_t:
+ * It is used with an adiak_datatype_t, which describes how to interpret the
+ * value. The following table describes what union value should be read for
+ * each \ref adiak_type_t:
  *
  * Type            | Union value
  * ----------------|------------
@@ -189,8 +252,10 @@ void adiak_fini();
  *
  * Values are associated with the specified \a name and described by the specified type.
  * The printf-style \a typestr describes the type of the value, which is constructed
- * from the string specifiers shown in \ref adiak_type_t. The varargs contains parameters
- * for the type. The entire type describes how the value is encoded. For example:
+ * from the string specifiers shown in \ref adiak_type_t. The varargs contain the value
+ * and, if needed, any additional parameters for the type (e.g., list length).
+ *
+ * An example:
  *
  * \code
  * adiak_namevalue("numrecords", adiak_general, NULL, "%d", 10);
@@ -217,10 +282,10 @@ void adiak_fini();
  *   As example, the \a typestr could be "%d", "%s", or "[%p]" to describe an integer,
  *   string, or set-of-paths value, respectively. See \ref adiak_type_t.
  * \param ... The value of the name/value pair. It is interpreted based on the
- *   \a typestr. For scalar types and strings,
- *   this is just the value itself. For compound types like arrays or tuples, this
- *   is an array or struct pointer followed by the list dimensions, from the outermost
- *   to the innermost type (see examples above).
+ *   \a typestr. For scalars and strings,
+ *   this is typically just the value itself. Compound types like arrays or tuples
+ *   require additional parameters like an array length. See
+ *   \ref adiak_type_t to learn how to encode the value for each Adiak datatype.
  * \returns On success, returns 0. On a failure, returns -1.
  *
  * There is also a convenient C++ interface for registering values, see adiak::value.
@@ -245,14 +310,15 @@ int adiak_raw_namevalue(const char *name, int category, const char *subcategory,
 int adiak_user();
 /** \brief Makes a 'uid' name/val with the uid of who's running the job */
 int adiak_uid();
-/** \brief Makes a 'launchdate' name/val with the date of when this job started
+/** \brief Makes a 'launchdate' name/val with the seconds since UNIX epoch of when this job started */
+int adiak_launchdate();
+/** \brief Makes a 'launchday' name/val with the date when this job started, but truncated to midnight 
  *
- * Creates an adiak_date value named "launchdate" of the time when this process was started,
+ * Creates an adiak_date value named "launchday" of the time when this process was started,
+ * in the form of seconds since UNIX epoch,
  * but rounded down to the previous midnight at GMT+0. This can be used to group jobs that
  * ran on the same day.
  */
-int adiak_launchdate();
-/** \brief Makes a 'launchday' name/val with date when this job started, but truncated to midnight */
 int adiak_launchday();
 /** \brief Makes an 'executable' name/val with the executable file for this job */
 int adiak_executable();

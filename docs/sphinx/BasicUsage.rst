@@ -102,7 +102,7 @@ at certain points or as the application provides them. For example:
            )
     {
         char* typestr = adiak_type_to_string(t, 1);
-        char* valstr = value_to_string(value);
+        char* valstr = value_to_string(value, t);
         printf("Received name/value pair of %s/%s of type %s\n", name, valstr, typestr);
         free(valstr);
         free(typestr);
@@ -127,7 +127,7 @@ Concepts
 -----------------
 
 As described in the introduction, Adiak is an interface for providing
-name/values pairs to subscriber tools. This section describes several
+name/value pairs to subscriber tools. This section describes several
 other important design decisions.
 
 Memory Management and Data Lifetime
@@ -182,5 +182,31 @@ along with the data values.
 
 In the C-style interface types are described with a printf-style type string,
 which is passed along with the value when registering name/value pairs.
-For example, integers are represent as `%d`, sets as brackets `[]`, and
+For example, integers are represented as `%d`, sets as brackets `[]`, and
 lists as braces `{}`.
+
+Categories
+.................
+
+Each Adiak name/value pair belongs to a "category". The tool interface allows
+tools to query name/value pairs by category, e.g. to only process values of a
+certain category.
+
+Adiak contains two built-in categories: :c:macro:`adiak_general`, which should
+be used for general run metadata, and :c:macro:`adiak_performance`, which should
+be used for name/value pairs describing program performance. The values
+:c:macro:`adiak_category_all` and :c:macro:`adiak_control` are special values
+reserved for the tool API and should not be assigned to any name/value pair.
+
+In addition to the built-in categories, users can also define custom categories.
+However, values up to 1000 are reserved for Adiak, so any user-defined category
+should have a value of 1001 or higher.
+
+Users must provide a category when registering a name/value pair with
+:cpp:func:`adiak_namevalue`. If unsure, use ``adiak_general``. In the
+C++ API, the :cpp:func:`value` function uses ``adiak_general`` by default,
+but users can overwrite this.
+
+Name/value pairs can also be assigned an optional `subcategory` string. This 
+can be helpful to e.g. group certain values together. Interpretation of the 
+subcategory strings is entirely up to each application and tool.
