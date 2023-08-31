@@ -15,11 +15,12 @@
 
 namespace adiak
 {
-   /**
-    * date/version/path/catpath are used to distinguise these types from strings and longs
-    * when you pass values to adiak::value.
-    **/
-   //A date, represented as seconds since epcoh.
+   /// \addtogroup UserAPI
+   /// \{
+   /// \name Datatype adapters
+   /// \{
+
+   /// \brief Convert an unsigned long into a \ref adiak_date
    struct date {
       unsigned long v;
       date(unsigned long sec_since_epoch) { v = sec_since_epoch; }
@@ -27,7 +28,12 @@ namespace adiak
       typedef unsigned long adiak_underlying_type;
    };
 
-   //A version number, as a string.
+   /// \brief Convert a string into a \ref adiak_version
+   ///
+   /// Example:
+   /// \code
+   /// adiak::value("version", adiak::version("1.2.3beta4"));
+   /// \endcode
    struct version {
       std::string v;
       version(std::string verstring) { v = verstring; }
@@ -35,7 +41,12 @@ namespace adiak
       typedef std::string adiak_underlying_type;
    };
 
-   //A file path, as a string.
+   /// \brief Convert a string into a \ref adiak_path
+   ///
+   /// Example:
+   /// \code
+   /// adiak::value("input deck", adiak::path("/home/user/sim.in"));
+   /// \endcode
    struct path {
       std::string v;
       path(std::string filepath) { v = filepath; }
@@ -43,13 +54,20 @@ namespace adiak
       typedef std::string adiak_underlying_type;
    };
 
-   //A categorical string, which functions like a string but flags it as unsortable.
+   /// \brief Convert a string into a \ref adiak_catstring
+   ///
+   /// Example:
+   /// \code
+   /// adiak::value("testcase", adiak::catstring("x1_large"));
+   /// \endcode
    struct catstring {
       std::string v;
       catstring(std::string cs) { v = cs; }
       operator std::string() const { return v; }
       typedef std::string adiak_underlying_type;
    };
+   /// \}
+   /// \}
 }
 
 #include "adiak_internal.hpp"

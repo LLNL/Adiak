@@ -123,6 +123,8 @@ function in this example processes the value, and can be found in the
 Multiple tools can register to receive Adiak callbacks. Tools can also
 iterate over and examine the already-set name/value pairs.
 
+.. _concepts:
+
 Concepts
 -----------------
 
@@ -210,3 +212,6 @@ but users can overwrite this.
 Name/value pairs can also be assigned an optional `subcategory` string. This 
 can be helpful to e.g. group certain values together. Interpretation of the 
 subcategory strings is entirely up to each application and tool.
+
+Adiak and MPI
+..................

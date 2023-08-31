@@ -266,7 +266,7 @@ void adiak_fini();
  * adiak_namevalue("gridvals", adiak_general, NULL, "[%f]", gridvalues, 4);
  *
  * struct { int pos; const char *val; } letters[3] = { {1, "a"}, {2, "b"}, {3, "c"} };
- * adiak_namevalue("alphabet", adiak_general, NULL, "[(%u, %s)]", letters, 3, 2);
+ * adiak_namevalue("alphabet", adiak_general, NULL, "[(%d, %s)]", letters, 3, 2);
  * \endcode
  *
  * \param name Name of the Adiak name/value pair. Adiak makes a copy of the string, and
@@ -343,9 +343,17 @@ int adiak_cputime();
 
 /** \brief Makes a 'jobsize' name/val with the number of ranks in an MPI job */
 int adiak_job_size();
-/** \brief Makes a 'hostlist' name/val with the set of hostnames in this MPI job */
+/** \brief Makes a 'hostlist' name/val with the set of hostnames in this MPI job 
+ *
+ * This function invokes MPI collective operations and must be called by all MPI 
+ * ranks in the communicator provided to \ref adiak_init.
+ */
 int adiak_hostlist();
-/** \brief Makes a 'numhosts' name/val with the number of hosts in this MPI job */
+/** \brief Makes a 'numhosts' name/val with the number of hosts in this MPI job 
+ *
+ * This function invokes MPI collective operations and must be called by all MPI 
+ * ranks in the communicator provided to \ref adiak_init.
+ */
 int adiak_num_hosts();
 
 /** \brief Flush values through Adiak. Currently unused. */
