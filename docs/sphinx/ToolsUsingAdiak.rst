@@ -3,6 +3,8 @@ Tools using Adiak
 
 This section provides an overview of tools using Adiak.
 
+.. _caliper-section:
+
 Caliper
 -----------------
 

@@ -5,8 +5,8 @@ This section describes Adiak's application interface. It is primarily routines
 for registering name/value pairs, and for initializing and flushing adiak data.
 
 As previously discussed, Adiak has a C++ and a C interface. The C++ interface
-is wrapped in an ``adiak::`` namespace.  The C-interface functions are prefixed
-by the string ``adiak_``.
+is wrapped in the ``adiak`` namespace.  The C-interface functions
+are prefixed by the string ``adiak_``.
 
 See :ref:`concepts` for an overview of important design decisions in Adiak.
 
@@ -108,7 +108,7 @@ a list of tuples.
 
 In the C API, the typestring for compound types uses a constructor and a
 subtype, for example "{%d}" for a list of ints. The value is provided via the
-varargs parameters for :cpp:func:`namevalue` as a C-style array followed by
+varargs parameters for :cpp:func:`adiak_namevalue` as a C-style array followed by
 the data dimensions (e.g., the array length). Recursive type definitions use
 multiple dimension parameters, specified in order from the outermost to the
 innermost type. For example:
@@ -139,7 +139,7 @@ when given specific STL containers as value, e.g. ``std::tuple`` for tuples or
 .. code-block:: c++
 
    // create a set of ints
-   std::set squares { 1, 4, 9, 16 };
+   std::set<int> squares { 1, 4, 9, 16 };
    adiak::value("squares", squares);
 
    // create a (int,string,path) tuple

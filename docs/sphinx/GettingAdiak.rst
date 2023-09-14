@@ -21,7 +21,7 @@ Configure and install Adiak as needed, for example:
     $ cmake -DBUILD_SHARED_LIBS=On -DENABLE_MPI=On -DCMAKE_INSTALL_PREFIX=<install dir> ..
     $ make && make install
 
-There are a few useful CMake flags you can set:
+There are a few useful CMake flags to set:
 
 ENABLE_MPI
   Build Adiak with MPI support

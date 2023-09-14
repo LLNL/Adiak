@@ -140,8 +140,11 @@ typedef enum {
     *
     * N typestrings should be passed between the "( )" parentheses, e.g.
     * "(%d,%s,%p)" for a (int,string,path) tuple. In the C interface, the
-    * values should be passed as N values. In the C++ interface, the value
-    * should be a \c std::tuple with N elements.
+    * values should be passed as a pointer to a C struct with the tuple
+    * values and an int with the number of tuple elements.
+    *
+    * In the C++ interface, the value should be a \c std::tuple with
+    * N elements.
     */
    adiak_tuple,
    adiak_longlong,
@@ -312,7 +315,7 @@ int adiak_user();
 int adiak_uid();
 /** \brief Makes a 'launchdate' name/val with the seconds since UNIX epoch of when this job started */
 int adiak_launchdate();
-/** \brief Makes a 'launchday' name/val with the date when this job started, but truncated to midnight 
+/** \brief Makes a 'launchday' name/val with the date when this job started, but truncated to midnight
  *
  * Creates an adiak_date value named "launchday" of the time when this process was started,
  * in the form of seconds since UNIX epoch,
@@ -343,21 +346,22 @@ int adiak_cputime();
 
 /** \brief Makes a 'jobsize' name/val with the number of ranks in an MPI job */
 int adiak_job_size();
-/** \brief Makes a 'hostlist' name/val with the set of hostnames in this MPI job 
+/** \brief Makes a 'hostlist' name/val with the set of hostnames in this MPI job
  *
- * This function invokes MPI collective operations and must be called by all MPI 
+ * This function invokes MPI collective operations and must be called by all MPI
  * ranks in the communicator provided to \ref adiak_init.
  */
 int adiak_hostlist();
-/** \brief Makes a 'numhosts' name/val with the number of hosts in this MPI job 
+/** \brief Makes a 'numhosts' name/val with the number of hosts in this MPI job
  *
- * This function invokes MPI collective operations and must be called by all MPI 
+ * This function invokes MPI collective operations and must be called by all MPI
  * ranks in the communicator provided to \ref adiak_init.
  */
 int adiak_num_hosts();
 
-/** \brief Flush values through Adiak. Currently unused. */
+/** \brief Trigger a flush in registered tools. */
 int adiak_flush(const char *location);
+
 /** \brief Clear all adiak name/values.
  *
  * This routine frees all heap memory used by adiak. This includes the cache of all
