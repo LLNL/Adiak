@@ -10,7 +10,7 @@ jobs:
 
     steps:
     - name: Install dependencies
-      run: sudo apt-get install doxygen sphinx-doc breathe-doc
+      run: sudo apt-get install doxygen python3-sphinx python3-breathe
 
     - name: Checkout
       uses: actions/checkout@v3
