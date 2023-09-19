@@ -2,7 +2,7 @@ name: GHPages
 
 on:
   push:
-    branches: [ "adiak-documentation" ]
+    branches: [ $default-branch ]
   workflow_dispatch:
 
 permissions:
