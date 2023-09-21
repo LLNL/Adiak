@@ -76,7 +76,7 @@ pairs under standardized names. For example:
 The :cpp:func:`uid` function creates a name of "uid" and associates it
 with a string of the user id that owns this process. For example, this call
 might create a name/value pair of `{ "uid": "jsmith1" }`. The
-:cpp:func:`date` function associates a “date” name with the current
+:cpp:func:`launchdate` function associates a `launchdate` name with the current
 date and time. There are a larger set of standardized names in the
 :doc:`ApplicationAPI` section. Equivalent functions are also available
 in the C interface.

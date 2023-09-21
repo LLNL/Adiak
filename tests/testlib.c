@@ -134,7 +134,7 @@ static void print_nameval(const char *name, int UNUSED(category), const char *UN
 
 static void print_on_flush(const char *name, int UNUSED(category), const char *UNUSED(subcategory), adiak_value_t *UNUSED(value), adiak_datatype_t *UNUSED(t), void *UNUSED(opaque_value))
 {
-   if (strcmp(name, "fini") != 0)
+   if (strcmp(name, "flush") != 0)
       return;
    adiak_list_namevals(1, adiak_category_all, print_nameval, NULL);
 }
