@@ -34,6 +34,14 @@ by printf-inspired strings.
    ApplicationAPI
    ToolAPI
 
+Contributing
+==================
+
+Contributions to Adiak are welcome, and should be made under the MIT license. 
+Please submit pull requests to the github repository.
+
+LLNL-CODE-792240.
+
 Indices and tables
 ==================
 

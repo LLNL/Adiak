@@ -1,3 +1,6 @@
+Adiak: Recording HPC Run Metadata
+==================
+
 Adiak is a library for collecting metadata from HPC application runs, and distributing that metadata to subscriber tools.  Examples of Adiak metadata are:
 - What user performed this run
 - At what time did the run launch
@@ -11,7 +14,7 @@ Adiak has a tool interface, which allows tools to subscribe to this metadata.  E
 
 Documentation
 ----------------
-More information can be found in adiak/docs.
+More information can be found in https://llnl.github.io/Adiak/.
 
 Contributing
 ----------------
