@@ -1,0 +1,1 @@
+blt_add_doxygen_target(adiak_doxygen)

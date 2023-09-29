@@ -36,6 +36,10 @@ if (ENABLE_TESTS)
   add_subdirectory(tests)
 endif()
 
+if (ENABLE_DOCS)
+  add_subdirectory(docs)
+endif()
+
 include(CMakePackageConfigHelpers)
 
 # Configure adiak-config-version.cmake

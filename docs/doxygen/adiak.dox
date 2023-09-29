@@ -1,0 +1,10 @@
+/**
+\namespace adiak
+\brief Contains the Adiak C++ API
+
+\defgroup UserAPI Adiak User API
+\brief Adiak API for registering name/value pairs.
+
+\defgroup ToolAPI Adiak Tool API
+\brief Adiak API for querying name/value pairs.
+*/
