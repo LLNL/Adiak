@@ -309,6 +309,8 @@ adiak_datatype_t *adiak_new_datatype(const char *typestr, ...);
 int adiak_raw_namevalue(const char *name, int category, const char *subcategory,
                         adiak_value_t *value, adiak_datatype_t *type);
 
+/** \brief Makes a 'adiak_version' name/val with the Adiak library version */
+int adiak_adiakversion();
 /** \brief Makes a 'user' name/val with the real name of who's running the job */
 int adiak_user();
 /** \brief Makes a 'uid' name/val with the uid of who's running the job */
@@ -358,6 +360,15 @@ int adiak_hostlist();
  * ranks in the communicator provided to \ref adiak_init.
  */
 int adiak_num_hosts();
+
+/** \brief Collect all available built-in Adiak name/value pairs
+ *
+ * This shortcut invokes all of the pre-defined routines that collect common
+ * metadata (\ref adiak_uid, \ref adiak_launchdate, etc).
+ *
+ * \return The number of successfully recorded name/value pairs.
+ */
+int adiak_collect_all();
 
 /** \brief Trigger a flush in registered tools. */
 int adiak_flush(const char *location);
