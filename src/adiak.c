@@ -773,7 +773,7 @@ int adiak_adiakversion()
    int ret = snprintf(buf, 16, "%d.%d.%d", ADIAK_VERSION, ADIAK_MINOR_VERSION, ADIAK_POINT_VERSION);
    if (ret < 0 || ret >= 16)
       return -1;
-   adiak_namevalue("adiak_version", adiak_general, "runinfo", "%v", buf);
+   adiak_namevalue("adiakversion", adiak_general, "runinfo", "%v", buf);
    return 0;
 }
 

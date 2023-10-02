@@ -81,6 +81,9 @@ date and time. There are a larger set of standardized names in the
 :doc:`ApplicationAPI` section. Equivalent functions are also available
 in the C interface.
 
+The :cpp:func:`collect_all` convenience function collects all of Adiak's built-in
+name/value pairs.
+
 Tool Interface
 -----------------
 
