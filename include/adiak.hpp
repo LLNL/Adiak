@@ -181,7 +181,7 @@ namespace adiak
 
    /// \copydoc adiak_version
    inline bool adiakversion() {
-      return adiak_adiakversion();
+      return adiak_adiakversion() == 0;
    }
 
    /// \copydoc adiak_user
