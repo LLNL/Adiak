@@ -179,7 +179,7 @@ namespace adiak
       return true;
    }
 
-   /// \copydoc adiak_version
+   /// \copydoc adiak_adiakversion
    inline bool adiakversion() {
       return adiak_adiakversion() == 0;
    }

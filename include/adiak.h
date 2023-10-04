@@ -309,7 +309,7 @@ adiak_datatype_t *adiak_new_datatype(const char *typestr, ...);
 int adiak_raw_namevalue(const char *name, int category, const char *subcategory,
                         adiak_value_t *value, adiak_datatype_t *type);
 
-/** \brief Makes a 'adiak_version' name/val with the Adiak library version */
+/** \brief Makes a 'adiakversion' name/val with the Adiak library version */
 int adiak_adiakversion();
 /** \brief Makes a 'user' name/val with the real name of who's running the job */
 int adiak_user();
@@ -364,7 +364,7 @@ int adiak_num_hosts();
 /** \brief Collect all available built-in Adiak name/value pairs
  *
  * This shortcut invokes all of the pre-defined routines that collect common
- * metadata (\ref adiak_uid, \ref adiak_launchdate, etc).
+ * metadata (like \ref adiak_uid, \ref adiak_launchdate, etc).
  *
  * If MPI support is enabled then this function is a collective all and must
  * be called by all MPI ranks in the communicator provided to \ref adiak_init.
