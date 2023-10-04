@@ -38,7 +38,7 @@ void dowork(struct timeval start)
    if (result != 0) printf("return: %d\n\n", result);
 
    result = adiak_collect_all();
-   if (result == 0) printf("return %d\n\n", result);
+   if (result != 0) printf("return %d\n\n", result);
 
    gettimeofday(&end, NULL);
    struct timeval *timerange[2];

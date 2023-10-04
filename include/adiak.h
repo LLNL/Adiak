@@ -366,7 +366,10 @@ int adiak_num_hosts();
  * This shortcut invokes all of the pre-defined routines that collect common
  * metadata (\ref adiak_uid, \ref adiak_launchdate, etc).
  *
- * \return The number of successfully recorded name/value pairs.
+ * If MPI support is enabled then this function is a collective all and must
+ * be called by all MPI ranks in the communicator provided to \ref adiak_init.
+ *
+ * \return -1 if *no* data could be collected, otherwise 0.
  */
 int adiak_collect_all();
 

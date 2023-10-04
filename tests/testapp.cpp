@@ -91,8 +91,17 @@ void dowork(struct timeval
    result = adiak::value("nullpath", adiak::path("/dev/null"));
    if (!result) printf("return: %d\n\n", result);
 
-   adiak::collect_all();
+   result = adiak::collect_all();
+   if (!result) printf("return: %d\n\n", result);
 
+   result = adiak::walltime();
+   if (!result) printf("return: %d\n\n", result);
+
+   result = adiak::cputime();
+   if (!result) printf("return: %d\n\n", result);
+
+   result = adiak::systime();
+   if (!result) printf("return: %d\n\n", result);
 /* struct timeval end;
    gettimeofday(&end, NULL);
    result = adiak::value("computetime", &start, &end);

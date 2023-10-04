@@ -281,7 +281,7 @@ namespace adiak
 
    /// \copydoc adiak_collect_all
    inline bool collect_all() {
-      return adiak_collect_all() > 0;
+      return adiak_collect_all() == 0;
    }
 
    /// \}

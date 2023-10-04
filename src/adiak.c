@@ -1145,7 +1145,7 @@ int adiak_collect_all()
    if (ret == 0)
       ++count;
 
-   return count;
+   return (count > 0 ? 0 : -1);
 }
 
 static int adiak_type_string_helper(adiak_datatype_t *t, char *str, int len, int pos, int long_form, int size_calc_only)
