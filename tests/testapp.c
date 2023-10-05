@@ -28,30 +28,6 @@ void dowork(struct timeval start)
    result = adiak_namevalue("countdown", adiak_general, NULL, "%lld", 9876543210);
    if (result != 0) printf("return: %d\n\n", result);
 
-   result = adiak_user();
-   if (result != 0) printf("return: %d\n\n", result);
-   
-   result = adiak_uid();
-   if (result != 0) printf("return: %d\n\n", result);
-
-   result = adiak_launchdate();
-   if (result != 0) printf("return: %d\n\n", result);
-
-   result = adiak_executable();
-   if (result != 0) printf("return: %d\n\n", result);
-
-   result = adiak_libraries();
-   if (result != 0) printf("return: %d\n\n", result);
-
-   result = adiak_cmdline();
-   if (result != 0) printf("return: %d\n\n", result);
-
-   result = adiak_hostname();
-   if (result != 0) printf("return: %d\n\n", result);
-
-   result = adiak_clustername();
-   if (result != 0) printf("return: %d\n\n", result);
-
    result = adiak_walltime();
    if (result != 0) printf("return: %d\n\n", result);
 
@@ -59,16 +35,11 @@ void dowork(struct timeval start)
    if (result != 0) printf("return: %d\n\n", result);
 
    result = adiak_systime();
-   if (result != 0) printf("return: %d\n\n", result);   
-
-#if defined(USE_MPI)
-   result = adiak_job_size();
    if (result != 0) printf("return: %d\n\n", result);
 
-   result = adiak_hostlist();
-   if (result != 0) printf("return: %d\n\n", result);
-#endif
-   
+   result = adiak_collect_all();
+   if (result != 0) printf("return %d\n\n", result);
+
    gettimeofday(&end, NULL);
    struct timeval *timerange[2];
    timerange[0] = &start;
@@ -99,7 +70,7 @@ int main(
 #else
    adiak_init(NULL);
 #endif
-   
+
 
    dowork(start);
    dowork(start);

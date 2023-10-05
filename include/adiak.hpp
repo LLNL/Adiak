@@ -179,6 +179,11 @@ namespace adiak
       return true;
    }
 
+   /// \copydoc adiak_adiakversion
+   inline bool adiakversion() {
+      return adiak_adiakversion() == 0;
+   }
+
    /// \copydoc adiak_user
    inline bool user() {
       return adiak_user() == 0;
@@ -272,6 +277,11 @@ namespace adiak
    /// \copydoc adiak_clean
    inline bool clean() {
       return adiak_clean() == 0;
+   }
+
+   /// \copydoc adiak_collect_all
+   inline bool collect_all() {
+      return adiak_collect_all() == 0;
    }
 
    /// \}

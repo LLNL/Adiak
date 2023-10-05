@@ -115,7 +115,7 @@ int adiak_raw_namevalue(const char *name, int category, const char *subcategory,
       record_nameval(name, category, subcategory, value, type);
    if (!tool_list)
       return 0;
-   
+
    for (tool = (adiak_tool_t *) *tool_list; tool != NULL; tool = tool->next) {
       if (!tool->report_on_all_ranks && !adiak_config->reportable_rank)
          continue;
@@ -124,7 +124,7 @@ int adiak_raw_namevalue(const char *name, int category, const char *subcategory,
       if (tool->name_val_cb)
          tool->name_val_cb(name, category, subcategory, value, type, tool->opaque_val);
    }
-   return 0;   
+   return 0;
 }
 
 int adiak_namevalue(const char *name, int category, const char *subcategory, const char *typestr, ...)
@@ -180,7 +180,7 @@ int adiak_namevalue(const char *name, int category, const char *subcategory, con
          container_ptr = va_arg(ap, void*);
          break;
    }
-   
+
    t = parse_typestr(typestr, &ap);
    va_end(ap);
    if (!t) {
@@ -191,7 +191,7 @@ int adiak_namevalue(const char *name, int category, const char *subcategory, con
    if (container_ptr) {
       copy_value(value, t, container_ptr);
    }
-   
+
    return adiak_raw_namevalue(name, category, subcategory, value, t);
 }
 
@@ -291,7 +291,7 @@ void adiak_init(void *mpi_communicator_p)
       adiak_config->reportable_rank = adksys_reportable_rank();
       adiak_config->use_mpi = 1;
    }
-   else 
+   else
 #endif
    do {
       adiak_config->reportable_rank = 1;
@@ -313,7 +313,7 @@ void adiak_fini()
       measure_walltime();
 
    val.v_int = 0;
-   adiak_raw_namevalue("fini", adiak_control, NULL, &val, &base_int);   
+   adiak_raw_namevalue("fini", adiak_control, NULL, &val, &base_int);
 }
 
 static void adiak_register(int adiak_version, int category,
@@ -331,7 +331,7 @@ static void adiak_register(int adiak_version, int category,
    newtool->category = category;
    newtool->next = (adiak_tool_t *) *tool_list;
    newtool->prev = NULL;
-   if (*tool_list) 
+   if (*tool_list)
       (*tool_list)->prev = newtool;
    *tool_list = newtool;
    if (report_on_all_ranks && !adiak_config->report_on_all_ranks)
@@ -354,14 +354,14 @@ static int find_end_brace(const char *typestr, char endchar, int typestr_start, 
          return cur;
       cur++;
    }
-   return -1;      
+   return -1;
 }
 
 static adiak_datatype_t *parse_typestr(const char *typestr, va_list *ap)
 {
    int end = 0;
    int len;
-   
+
    len = strlen(typestr);
    return parse_typestr_helper(typestr, 0, len, ap, &end);
 }
@@ -373,7 +373,7 @@ static adiak_type_t toplevel_type(const char *typestr) {
    while (*cur == ' ' || *cur == '\t' || *cur == '\n' || *cur == ',')
       cur++;
    if (*cur == '%') {
-      cur++;      
+      cur++;
       switch (*cur) {
          case 'l':
             cur++;
@@ -465,7 +465,7 @@ static void free_adiak_type(adiak_datatype_t *t)
 static void free_adiak_value_worker(adiak_datatype_t *t, adiak_value_t *v) {
    int i;
    adiak_value_t *values;
-   
+
    switch (t->dtype) {
       case adiak_type_unset:
       case adiak_long:
@@ -569,7 +569,7 @@ static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_s
    adiak_datatype_t *t = NULL;
    int cur = typestr_start;
    int end_brace, i, is_long = 0, is_longlong = 0;
-   
+
    if (!typestr)
       goto error;
    if (typestr_start == typestr_end)
@@ -610,7 +610,7 @@ static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_s
       t->subtype[0] = parse_typestr_helper(typestr, cur+1, end_brace, ap, &cur);
       if (t->subtype[0] == NULL)
          goto error;
-      *new_typestr_start = end_brace+1;      
+      *new_typestr_start = end_brace+1;
       goto done;
    }
    else if (typestr[cur] == '(') {
@@ -688,7 +688,7 @@ static unsigned long strhash(const char *str) {
     int c;
     while ((c = *str++))
         hash = ((hash << 5) + hash) + c;
-    return hash;   
+    return hash;
 }
 
 static void record_nameval(const char *name, int category, const char *subcategory,
@@ -715,7 +715,7 @@ static void record_nameval(const char *name, int category, const char *subcatego
       free_adiak_value(addrecord->dtype, addrecord->value);
       free_adiak_type(addrecord->dtype);
    }
-   
+
    addrecord->category = category;
    addrecord->subcategory = subcategory ? strdup(subcategory) : NULL;
    addrecord->value = value;
@@ -723,7 +723,7 @@ static void record_nameval(const char *name, int category, const char *subcatego
 
    if (!newrecord)
       return;
-   
+
    addrecord->name = (const char *) strdup(name);
    addrecord->list_next = NULL;
    if (!record_list) {
@@ -750,7 +750,7 @@ int adiak_clean()
    adiak_value_t val;
    record_list_t *i, *next;
    int result;
-   
+
    val.v_int = 0;
    result = adiak_raw_namevalue("clean", adiak_control, NULL, &val, &base_int);
    for (i = record_list; i != NULL; i = next) {
@@ -765,6 +765,16 @@ int adiak_clean()
    memset(record_hash, 0, sizeof(record_hash));
    record_list = record_list_end = NULL;
    return result;
+}
+
+int adiak_adiakversion()
+{
+   char buf[16];
+   int ret = snprintf(buf, 16, "%d.%d.%d", ADIAK_VERSION, ADIAK_MINOR_VERSION, ADIAK_POINT_VERSION);
+   if (ret < 0 || ret >= 16)
+      return -1;
+   adiak_namevalue("adiakversion", adiak_general, "runinfo", "%v", buf);
+   return 0;
 }
 
 int adiak_launchdate()
@@ -804,7 +814,7 @@ int adiak_executable()
    result = adksys_get_executable(path, sizeof(path));
    if (result == -1)
       return -1;
-   
+
    filepart = strrchr(path, '/');
    if (!filepart)
       filepart = path;
@@ -823,7 +833,7 @@ int adiak_executablepath()
    result = adksys_get_executable(path, sizeof(path));
    if (result == -1)
       return -1;
-   
+
    adiak_namevalue("executablepath", adiak_general, "binary", "%p", path);
    return 0;
 }
@@ -836,7 +846,7 @@ int adiak_cmdline()
    char **myargv = NULL;
    int myargc = 0;
    int retval = -1;
-   
+
    result = adksys_get_cmdline_buffer(&arglist, &arglist_size);
    if (result == -1)
       goto error;
@@ -887,7 +897,7 @@ static int measure_walltime()
    }
    else
       diff.tv_usec = etime.tv_usec - stime.tv_usec;
-   
+
    return adiak_namevalue("walltime", adiak_performance, "timing", "%t", &diff);
 }
 
@@ -930,10 +940,10 @@ int adiak_user()
 int adiak_workdir()
 {
    char cwd[FILENAME_MAX];
-   int result = adksys_get_cwd(cwd, FILENAME_MAX); 
+   int result = adksys_get_cwd(cwd, FILENAME_MAX);
    if (result == 1)
       return -1;
-   result = adiak_namevalue("working_directory", adiak_general, "runinfo", "%p", cwd); 
+   result = adiak_namevalue("working_directory", adiak_general, "runinfo", "%p", cwd);
    return result;
 }
 
@@ -948,7 +958,7 @@ int adiak_uid()
 
    result = adiak_namevalue("uid", adiak_general, "runinfo", "%s", name);
    free(name);
-   return result;   
+   return result;
 }
 
 int adiak_hostname()
@@ -972,7 +982,7 @@ int adiak_clustername()
    char *c;
 
    memset(hostname, 0, sizeof(hostname));
-   memset(clustername, 0, sizeof(hostname));   
+   memset(clustername, 0, sizeof(hostname));
    result = adksys_hostname(hostname, sizeof(hostname));
    if (result == -1)
       return -1;
@@ -986,7 +996,7 @@ int adiak_clustername()
    }
    clustername[i] = '\0';
 
-   return adiak_namevalue("cluster", adiak_general, "host", "%s", clustername);   
+   return adiak_namevalue("cluster", adiak_general, "host", "%s", clustername);
 }
 
 int adiak_hostlist()
@@ -1001,7 +1011,7 @@ int adiak_hostlist()
 #endif
    if (result == -1)
       return -1;
-   
+
    if (hostlist_array)
       result = adiak_namevalue("hostlist", adiak_general, "host", "[%s]", hostlist_array, num_hosts);
 
@@ -1023,7 +1033,7 @@ int adiak_num_hosts()
       result = adiak_namevalue("numhosts", adiak_general, "mpi", "%u", (unsigned int) num_hosts);
    else
       result = adiak_namevalue("numhosts", adiak_general, "mpi", "%u", (unsigned int) 1);
-   
+
    return result;
 }
 
@@ -1076,13 +1086,66 @@ int adiak_walltime()
 int adiak_systime()
 {
    measure_adiak_systime = 1;
-   return 0;   
+   return 0;
 }
 
 int adiak_cputime()
 {
    measure_adiak_cputime = 1;
-   return 0;   
+   return 0;
+}
+
+int adiak_collect_all()
+{
+   int count = 0;
+
+   int ret = adiak_adiakversion();
+   if (ret == 0)
+      ++count;
+   ret = adiak_user();
+   if (ret == 0)
+      ++count;
+   ret = adiak_uid();
+   if (ret == 0)
+      ++count;
+   ret = adiak_launchdate();
+   if (ret == 0)
+      ++count;
+   ret = adiak_launchday();
+   if (ret == 0)
+      ++count;
+   ret = adiak_executable();
+   if (ret == 0)
+      ++count;
+   ret = adiak_executablepath();
+   if (ret == 0)
+      ++count;
+   ret = adiak_workdir();
+   if (ret == 0)
+      ++count;
+   ret = adiak_libraries();
+   if (ret == 0)
+      ++count;
+   ret = adiak_cmdline();
+   if (ret == 0)
+      ++count;
+   ret = adiak_hostname();
+   if (ret == 0)
+      ++count;
+   ret = adiak_clustername();
+   if (ret == 0)
+      ++count;
+   ret = adiak_job_size();
+   if (ret == 0)
+      ++count;
+   ret = adiak_num_hosts();
+   if (ret == 0)
+      ++count;
+   ret = adiak_hostlist();
+   if (ret == 0)
+      ++count;
+
+   return (count > 0 ? 0 : -1);
 }
 
 static int adiak_type_string_helper(adiak_datatype_t *t, char *str, int len, int pos, int long_form, int size_calc_only)
@@ -1092,7 +1155,7 @@ static int adiak_type_string_helper(adiak_datatype_t *t, char *str, int len, int
    const char *rbracket = NULL;
    int i, result;
    int start_pos = pos;
-   
+
    switch (t->dtype) {
       case adiak_type_unset:
          simple = "unset";
@@ -1166,7 +1229,7 @@ static int adiak_type_string_helper(adiak_datatype_t *t, char *str, int len, int
          result = snprintf(str + pos, len - pos, "%s", lbracket);
       else
          result = strlen(lbracket);
-      if (result > 0) pos += result;      
+      if (result > 0) pos += result;
       for (i = 0; i < t->num_subtypes; i++) {
          pos += adiak_type_string_helper(t->subtype[i], str, len, pos, long_form, size_calc_only);
          if (i + 1 != t->num_subtypes) {

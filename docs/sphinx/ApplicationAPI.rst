@@ -20,6 +20,8 @@ the available implicit routines, and the name/value pair they register.
 +----------------------------+----------------+-------------------------------------+
 | Function                   | Name           | Description                         |
 +----------------------------+----------------+-------------------------------------+
+| :cpp:func:`adiakversion`   | adiakversion   | Adiak library version               |
++----------------------------+----------------+-------------------------------------+
 | :cpp:func:`user`           | user           | Name of user running the job        |
 +----------------------------+----------------+-------------------------------------+
 | :cpp:func:`uid`            | uid            | User ID of user running the job     |
@@ -54,6 +56,9 @@ the available implicit routines, and the name/value pair they register.
 +----------------------------+----------------+-------------------------------------+
 | :cpp:func:`hostlist`       | hostlist       | List of distinct nodes in MPI job   |
 +----------------------------+----------------+-------------------------------------+
+
+The catchall function :cpp:func:`adiak_collect_all` function collects all of the
+common name/value pairs except walltime, systime, and cputime.
 
 Using datatypes
 --------------------------------

@@ -57,7 +57,7 @@ void dowork(struct timeval
 
    result = adiak::value("antipoints", antipoints_r);
    if (!result) printf("return: %d\n\n", result);
-   
+
    result = adiak::value("antipoints_r", antipoints_r);
    if (!result) printf("return: %d\n\n", result);
 
@@ -84,41 +84,14 @@ void dowork(struct timeval
 
    result = adiak::value("githash", adiak::catstring("a0c93767478f23602c2eb317f641b091c52cf374"));
    if (!result) printf("return: %d\n\n", result);
-   
+
    result = adiak::value("birthday", adiak::date(286551000));
    if (!result) printf("return: %d\n\n", result);
 
    result = adiak::value("nullpath", adiak::path("/dev/null"));
    if (!result) printf("return: %d\n\n", result);
 
-   result = adiak::user();
-   if (!result) printf("return: %d\n\n", result);
-   
-   result = adiak::uid();
-   if (!result) printf("return: %d\n\n", result);
-
-   result = adiak::launchdate();
-   if (!result) printf("return: %d\n\n", result);
-
-   result = adiak::executable();
-   if (!result) printf("return: %d\n\n", result);
-
-   result = adiak::workdir();
-   if (!result) printf("return: %d\n\n", result);
-
-   result = adiak::executablepath();
-   if (!result) printf("return: %d\n\n", result);
-
-   result = adiak::libraries();
-   if (!result) printf("return: %d\n\n", result);
-   
-   result = adiak::cmdline();
-   if (!result) printf("return: %d\n\n", result);
-
-   result = adiak::hostname();
-   if (!result) printf("return: %d\n\n", result);
-
-   result = adiak::clustername();
+   result = adiak::collect_all();
    if (!result) printf("return: %d\n\n", result);
 
    result = adiak::walltime();
@@ -128,27 +101,18 @@ void dowork(struct timeval
    if (!result) printf("return: %d\n\n", result);
 
    result = adiak::systime();
-   if (!result) printf("return: %d\n\n", result);   
-
-#if defined(USE_MPI)
-   result = adiak::jobsize();
    if (!result) printf("return: %d\n\n", result);
-
-   result = adiak::hostlist();
-   if (!result) printf("return: %d\n\n", result);
-#endif
-   
 /* struct timeval end;
    gettimeofday(&end, NULL);
    result = adiak::value("computetime", &start, &end);
    if (!result) printf("return: %d\n\n", result);*/
-   
+
    array<float, 3> floatar;
    floatar[0] = 0.01f;
    floatar[1] = 0.02f;
    floatar[2] = 0.03f;
    result = adiak::value("floats", floatar);
-   if (!result) printf("return: %d\n\n", result);   
+   if (!result) printf("return: %d\n\n", result);
 }
 
 int main(
@@ -165,7 +129,7 @@ int main(
    struct timeval start;
 
    dowork(start);
-   
+
    gettimeofday(&start, NULL);
 #if defined(USE_MPI)
    MPI_Init(&argc, &argv);
@@ -174,10 +138,10 @@ int main(
    adiak::init(NULL);
 #endif
 
-   
+
    adiak::fini();
    adiak::clean();
-#if defined(USE_MPI)   
+#if defined(USE_MPI)
    MPI_Finalize();
 #endif
    return 0;
