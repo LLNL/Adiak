@@ -714,6 +714,8 @@ static void record_nameval(const char *name, int category, const char *subcatego
    else {
       free_adiak_value(addrecord->dtype, addrecord->value);
       free_adiak_type(addrecord->dtype);
+      free((void*) addrecord->subcategory);
+      addrecord->subcategory = NULL;
    }
 
    addrecord->category = category;
