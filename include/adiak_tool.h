@@ -101,15 +101,15 @@ int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **va
  * a Adiak copy.
  *
  * Returns NULL in \a subtype and in \a subvalue.v_ptr if the given
- * value is not a container type or \a n is out-of-bounds.
+ * value is not a container type or \a elem is out-of-bounds.
  * 
  * \param[in] t The container datatype
  * \param[in] val The container value
- * \param[in] n Index of the sub-element to return
+ * \param[in] elem Index of the sub-element to return
  * \param[out] subtype Returns the selected sub-value's datatype
  * \param[out] subval Returns the selected sub-value
  */
-int adiak_get_subval(adiak_datatype_t* t, adiak_value_t* val, int n, adiak_datatype_t** subtype, adiak_value_t* subval);
+int adiak_get_subval(adiak_datatype_t* t, adiak_value_t* val, int elem, adiak_datatype_t** subtype, adiak_value_t* subval);
 /**
  * \}
  * \}

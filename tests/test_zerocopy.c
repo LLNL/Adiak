@@ -44,7 +44,7 @@ void dowork()
    if (result != 0) printf("return: %d\n\n", result);
 
    /* full deep copy list of tuples */
-   result = adiak_namevalue("hello", adiak_general, NULL, "{(%lld,%s)}", hello_data, 3, 2);
+   result = adiak_namevalue("hello_deepcopy", adiak_general, NULL, "{(%lld,%s)}", hello_data, 3, 2);
    if (result != 0) printf("return: %d\n\n", result);
 
    /* zero-copy list of tuples */

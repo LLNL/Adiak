@@ -274,7 +274,7 @@ int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **va
    return -1;
 }
 
-int adiak_get_subval(adiak_datatype_t* t, adiak_value_t* val, int n, adiak_datatype_t** subtype, adiak_value_t* subval)
+int adiak_get_subval(adiak_datatype_t* t, adiak_value_t* val, int elem, adiak_datatype_t** subtype, adiak_value_t* subval)
 {
    /* Return if this is not a container type or we're out-of-bounds. */
    if (elem < 0 || elem >= t->num_elements)
@@ -674,8 +674,11 @@ static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *p
          target->v_double= *((double *) ptr);
          return sizeof(double);
       case adiak_timeval: {
-         struct timeval *v = (struct timeval *) malloc(sizeof(struct timeval));
-         *v = *(struct timeval *) ptr;
+         struct timeval* v = (struct timeval*) ptr;
+         if (!datatype->is_reference) {
+             v = (struct timeval *) malloc(sizeof(struct timeval));
+            *v = *(struct timeval *) ptr;
+         }
          target->v_ptr = v;
          return sizeof(struct timeval *);
       }
