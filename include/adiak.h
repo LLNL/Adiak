@@ -164,6 +164,8 @@ typedef struct adiak_datatype_t {
    adiak_type_t dtype;
    /** \brief Value category of this datatype */
    adiak_numerical_t numerical;
+   /** \brief Is this a reference (i.e., zero-copy) entry */
+   int is_reference;
    /** \brief Number of elements for compound types (e.g., number of list elements). */
    int num_elements;
    /** \brief Number of sub-types.
@@ -197,7 +199,7 @@ typedef struct adiak_datatype_t {
  * adiak_path      | v_ptr (cast to char*)
  * adiak_range     | v_subval (as adiak_value_t[2])
  * adiak_set       | v_subval (as adiak_value_t array)
- * adiak_list      | v_subval (as adiak_value_t array)
+ * adiak_list      | v_subval (as adiak_value_t array) 
  * adiak_tuple     | v_subval (as adiak_value_t array)
  * adiak_longlong  | v_longlong
  * adiak_ulonglong | v_longlong (as unsigned long long)
@@ -213,7 +215,7 @@ typedef union adiak_value_t {
    long long v_longlong;
 } adiak_value_t;
 
-static const adiak_datatype_t adiak_unset_datatype = { adiak_type_unset, adiak_numerical_unset, 0, 0, NULL };
+static const adiak_datatype_t adiak_unset_datatype = { adiak_type_unset, adiak_numerical_unset, 0, 0, 0, NULL };
 
 /**
  * \}

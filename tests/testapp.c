@@ -71,7 +71,6 @@ int main(
    adiak_init(NULL);
 #endif
 
-
    dowork(start);
    dowork(start);
 
