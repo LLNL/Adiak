@@ -55,23 +55,23 @@ static int measure_adiak_walltime;
 static int measure_adiak_systime;
 static int measure_adiak_cputime;
 
-static adiak_datatype_t base_long = { adiak_long, adiak_rational, 0, 0, 0, NULL };
-static adiak_datatype_t base_ulong = { adiak_ulong, adiak_rational, 0, 0, 0, NULL };
-static adiak_datatype_t base_longlong = { adiak_longlong, adiak_rational, 0, 0, 0, NULL };
-static adiak_datatype_t base_ulonglong = { adiak_ulonglong, adiak_rational, 0, 0, 0, NULL };
-static adiak_datatype_t base_int = { adiak_int, adiak_rational, 0, 0, 0, NULL };
-static adiak_datatype_t base_uint = { adiak_uint, adiak_rational, 0, 0, 0, NULL };
-static adiak_datatype_t base_double = { adiak_double, adiak_rational, 0, 0, 0, NULL };
-static adiak_datatype_t base_date = { adiak_date, adiak_interval, 0, 0, 0, NULL };
-static adiak_datatype_t base_timeval = { adiak_timeval, adiak_interval, 0, 0, 0, NULL };
-static adiak_datatype_t base_version = { adiak_version, adiak_ordinal, 0, 0, 0, NULL };
-static adiak_datatype_t base_string = { adiak_string, adiak_ordinal, 0, 0, 0, NULL };
-static adiak_datatype_t base_catstring = { adiak_catstring, adiak_categorical, 0, 0, 0, NULL };
-static adiak_datatype_t base_path = { adiak_path, adiak_categorical, 0, 0, 0, NULL };
-static adiak_datatype_t base_version_ref = { adiak_version, adiak_ordinal, 1, 0, 0, NULL };
-static adiak_datatype_t base_string_ref = { adiak_string, adiak_ordinal, 1, 0, 0, NULL };
-static adiak_datatype_t base_catstring_ref = { adiak_catstring, adiak_categorical, 1, 0, 0, NULL };
-static adiak_datatype_t base_path_ref = { adiak_path, adiak_categorical, 1, 0, 0, NULL };
+static adiak_datatype_t base_long = { adiak_long, adiak_rational, 0, 0, NULL, 0 };
+static adiak_datatype_t base_ulong = { adiak_ulong, adiak_rational, 0, 0, NULL, 0 };
+static adiak_datatype_t base_longlong = { adiak_longlong, adiak_rational, 0, 0, NULL, 0 };
+static adiak_datatype_t base_ulonglong = { adiak_ulonglong, adiak_rational, 0, 0, NULL, 0 };
+static adiak_datatype_t base_int = { adiak_int, adiak_rational, 0, 0, NULL, 0 };
+static adiak_datatype_t base_uint = { adiak_uint, adiak_rational, 0, 0, NULL, 0 };
+static adiak_datatype_t base_double = { adiak_double, adiak_rational, 0, 0, NULL, 0 };
+static adiak_datatype_t base_date = { adiak_date, adiak_interval, 0, 0, NULL, 0 };
+static adiak_datatype_t base_timeval = { adiak_timeval, adiak_interval, 0, 0, NULL, 0 };
+static adiak_datatype_t base_version = { adiak_version, adiak_ordinal, 0, 0, NULL, 0 };
+static adiak_datatype_t base_string = { adiak_string, adiak_ordinal, 0, 0, NULL, 0 };
+static adiak_datatype_t base_catstring = { adiak_catstring, adiak_categorical, 0, 0, NULL, 0 };
+static adiak_datatype_t base_path = { adiak_path, adiak_categorical, 0, 0, NULL, 0 };
+static adiak_datatype_t base_version_ref = { adiak_version, adiak_ordinal, 0, 0, NULL, 1 };
+static adiak_datatype_t base_string_ref = { adiak_string, adiak_ordinal, 0, 0, NULL, 1 };
+static adiak_datatype_t base_catstring_ref = { adiak_catstring, adiak_categorical, 0, 0, NULL, 1 };
+static adiak_datatype_t base_path_ref = { adiak_path, adiak_categorical, 0, 0, NULL, 1 };
 
 static void adiak_register(int adiak_version, int category,
                            adiak_nameval_cb_t nv,
