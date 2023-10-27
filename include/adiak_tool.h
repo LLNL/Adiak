@@ -94,6 +94,11 @@ char *adiak_type_to_string(adiak_datatype_t *t, int long_form);
 int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **value, int *category, const char **subcat);
 
 /**
+ * \brief Return the number of sub-values for the given container type \a t
+ */
+int adiak_num_subvals(adiak_datatype_t* t);
+
+/**
  * \brief Return the nth sub-value from a container-type value
  *
  * Returns a subvalue from a container value as a \ref adiak_value_t,

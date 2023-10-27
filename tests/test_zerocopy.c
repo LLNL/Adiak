@@ -14,7 +14,7 @@ static const int array[9] = { -1, 2, -3, 4, 5, 4, 3, 2, 1 };
 static const char* string_a = "One";
 static const char* string_b = "Two";
 
-/* Tuples are super iffy!
+/* Structs/tuples are super iffy!
  * There is no reliable way to determine their actual memory layout in adiak.
  * Using two 64-bit elements here which has a decent chance of working.
  */
