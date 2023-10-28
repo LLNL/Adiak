@@ -1097,6 +1097,34 @@ int adiak_cputime()
    return 0;
 }
 
+int adiak_mpiversion()
+{
+#if defined(USE_MPI)
+   char buf[16];
+   int result = -1;
+   if (adiak_config->use_mpi)
+      result = adksys_mpiversion(buf, 16);
+   if (result == -1)
+      return -1;
+   return adiak_namevalue("mpiversion", adiak_general, "mpi", "%v", buf);
+#endif
+   return -1;
+}
+
+int adiak_mpilibrary()
+{
+#if defined(USE_MPI)
+   char buf[2048];
+   int result = -1;
+   if (adiak_config->use_mpi)
+      result = adksys_mpilibrary(buf, 2048);
+   if (result == -1)
+      return -1;
+   return adiak_namevalue("mpilibrary", adiak_general, "mpi", "%s", buf);
+#endif
+   return -1;
+}
+
 int adiak_collect_all()
 {
    int count = 0;
@@ -1146,6 +1174,18 @@ int adiak_collect_all()
    ret = adiak_hostlist();
    if (ret == 0)
       ++count;
+   ret = adiak_mpiversion();
+   if (ret == 0)
+      ++count;
+#if 0
+   /*
+    *   Danger: adiak_mpilibrary() can produce strings with newlines, which is
+    * only supported in not-yet-released Caliper/caliperreader versions (v2.11+)
+    */
+   ret = adiak_mpilibrary();
+   if (ret == 0)
+      ++count;
+#endif
 
    return (count > 0 ? 0 : -1);
 }

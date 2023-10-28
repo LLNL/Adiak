@@ -6,6 +6,7 @@
 #include <mpi.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "adksys.h"
 
 #if !defined(USE_MPI)
@@ -185,6 +186,25 @@ int adksys_jobsize(int *size)
    result = MPI_Comm_size(adiak_communicator, size);
    if (result != MPI_SUCCESS)
       return -1;
+   return 0;
+}
+
+int adksys_mpiversion(char* output, size_t output_size)
+{
+   int ret = snprintf(output, output_size, "%d.%d", MPI_VERSION, MPI_SUBVERSION);
+   return (ret >= 0 && ((size_t) ret) < output_size ? 0 : -1);
+}
+
+int adksys_mpilibrary(char* output, size_t output_size)
+{
+   memset(output, 0, output_size);
+   char buf[MPI_MAX_LIBRARY_VERSION_STRING];
+   int len = MPI_MAX_LIBRARY_VERSION_STRING;
+   int err = MPI_Get_library_version(buf, &len);
+   if (err != MPI_SUCCESS || ((size_t) len) > output_size)
+      return -1;
+   strncpy(output, buf, output_size);
+   output[output_size-1] = '\0';
    return 0;
 }
 

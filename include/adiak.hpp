@@ -269,6 +269,16 @@ namespace adiak
       return adiak_num_hosts() == 0;
    }
 
+   /// \copydoc adiak_mpiversion
+   inline bool mpiversion() {
+      return adiak_mpiversion() == 0;
+   }
+
+   /// \copydoc adiak_mpilibrary
+   inline bool mpilibrary() {
+      return adiak_mpilibrary() == 0;
+   }
+
    /// \copydoc adiak_flush
    inline bool flush(std::string output) {
       return adiak_flush(output.c_str()) == 0;

@@ -360,6 +360,10 @@ int adiak_hostlist();
  * ranks in the communicator provided to \ref adiak_init.
  */
 int adiak_num_hosts();
+/** \brief Makes a 'mpi_version' name/val with the MPI standard version */
+int adiak_mpiversion();
+/** \brief Makes a 'mpi_library' name/val with the MPI library version */
+int adiak_mpilibrary();
 
 /** \brief Collect all available built-in Adiak name/value pairs
  *
