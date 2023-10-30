@@ -189,13 +189,13 @@ int adksys_jobsize(int *size)
    return 0;
 }
 
-int adksys_mpiversion(char* output, size_t output_size)
+int adksys_mpi_version(char* output, size_t output_size)
 {
    int ret = snprintf(output, output_size, "%d.%d", MPI_VERSION, MPI_SUBVERSION);
    return (ret >= 0 && ((size_t) ret) < output_size ? 0 : -1);
 }
 
-int adksys_mpilibrary(char* output, size_t output_size)
+int adksys_mpi_library(char* output, size_t output_size)
 {
    memset(output, 0, output_size);
    char buf[MPI_MAX_LIBRARY_VERSION_STRING];

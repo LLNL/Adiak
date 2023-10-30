@@ -361,13 +361,13 @@ int adiak_hostlist();
  */
 int adiak_num_hosts();
 /** \brief Makes a 'mpi_version' name/val with the MPI standard version */
-int adiak_mpiversion();
+int adiak_mpi_version();
 /** \brief Makes a 'mpi_library' name/val with MPI library info
  *
  * Returns the information given by MPI_Get_library_version(). Note that
  * this can be a long, multi-line string.
  */
-int adiak_mpilibrary();
+int adiak_mpi_library();
 
 /** \brief Collect all available built-in Adiak name/value pairs
  *

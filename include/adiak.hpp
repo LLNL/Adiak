@@ -270,13 +270,13 @@ namespace adiak
    }
 
    /// \copydoc adiak_mpiversion
-   inline bool mpiversion() {
-      return adiak_mpiversion() == 0;
+   inline bool mpi_version() {
+      return adiak_mpi_version() == 0;
    }
 
    /// \copydoc adiak_mpilibrary
-   inline bool mpilibrary() {
-      return adiak_mpilibrary() == 0;
+   inline bool mpi_library() {
+      return adiak_mpi_library() == 0;
    }
 
    /// \copydoc adiak_flush

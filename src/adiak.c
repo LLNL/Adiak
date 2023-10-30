@@ -1045,10 +1045,11 @@ int adiak_job_size()
 
 #if defined(USE_MPI)
    int result = -1;
-   if (adiak_config->use_mpi)
+   if (adiak_config->use_mpi) {
       result = adksys_jobsize(&size);
-   if (result == -1)
-      return -1;
+      if (result == -1)
+         return -1;
+   }
 #endif
    return adiak_namevalue("jobsize", adiak_general, "mpi", "%u", size);
 }
@@ -1097,30 +1098,30 @@ int adiak_cputime()
    return 0;
 }
 
-int adiak_mpiversion()
+int adiak_mpi_version()
 {
 #if defined(USE_MPI)
    char buf[16];
    int result = -1;
    if (adiak_config->use_mpi)
-      result = adksys_mpiversion(buf, 16);
+      result = adksys_mpi_version(buf, 16);
    if (result == -1)
       return -1;
-   return adiak_namevalue("mpiversion", adiak_general, "mpi", "%v", buf);
+   return adiak_namevalue("mpi_version", adiak_general, "mpi", "%v", buf);
 #endif
    return -1;
 }
 
-int adiak_mpilibrary()
+int adiak_mpi_library()
 {
 #if defined(USE_MPI)
    char buf[2048];
    int result = -1;
    if (adiak_config->use_mpi)
-      result = adksys_mpilibrary(buf, 2048);
+      result = adksys_mpi_library(buf, 2048);
    if (result == -1)
       return -1;
-   return adiak_namevalue("mpilibrary", adiak_general, "mpi", "%s", buf);
+   return adiak_namevalue("mpi_library", adiak_general, "mpi", "%s", buf);
 #endif
    return -1;
 }
@@ -1174,15 +1175,15 @@ int adiak_collect_all()
    ret = adiak_hostlist();
    if (ret == 0)
       ++count;
-   ret = adiak_mpiversion();
+   ret = adiak_mpi_version();
    if (ret == 0)
       ++count;
 #if 0
    /*
-    *   Danger: adiak_mpilibrary() can produce strings with newlines, which is
+    *   Danger: adiak_mpi_library() can produce strings with newlines, which is
     * only supported in not-yet-released Caliper/caliperreader versions (v2.11+)
     */
-   ret = adiak_mpilibrary();
+   ret = adiak_mpi_library();
    if (ret == 0)
       ++count;
 #endif
