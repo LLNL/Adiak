@@ -1126,6 +1126,22 @@ int adiak_mpi_library()
    return -1;
 }
 
+int adiak_mpi_library_version()
+{
+#if defined(USE_MPI)
+   char vendor[80];
+   char version[40];
+   int result = -1;
+   if (adiak_config->use_mpi)
+      result = adksys_mpi_library_version(vendor, 80, version, 40);
+   if (result == -1)
+      return -1;
+   adiak_namevalue("mpi_library_vendor", adiak_general, "mpi", "%s", vendor);
+   adiak_namevalue("mpi_library_version", adiak_general, "mpi", "%v", version);
+#endif
+   return -1;
+}
+
 int adiak_collect_all()
 {
    int count = 0;
@@ -1178,15 +1194,9 @@ int adiak_collect_all()
    ret = adiak_mpi_version();
    if (ret == 0)
       ++count;
-#if 0
-   /*
-    *   Danger: adiak_mpi_library() can produce strings with newlines, which is
-    * only supported in not-yet-released Caliper/caliperreader versions (v2.11+)
-    */
-   ret = adiak_mpi_library();
+   ret = adiak_mpi_library_version();
    if (ret == 0)
       ++count;
-#endif
 
    return (count > 0 ? 0 : -1);
 }

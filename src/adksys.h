@@ -25,5 +25,6 @@ int adksys_get_cwd(char *cwd, size_t max_size);
 void *adksys_get_public_adiak_symbol();
 int adksys_mpi_version(char* output, size_t output_size);
 int adksys_mpi_library(char* output, size_t output_size);
+int adksys_mpi_library_version(char* vendor, size_t vendor_len, char* version, size_t version_len);
 
 #endif

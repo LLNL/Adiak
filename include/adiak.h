@@ -364,11 +364,20 @@ int adiak_num_hosts();
 int adiak_mpi_version();
 /** \brief Makes a 'mpi_library' name/val with MPI library info
  *
- * Returns the information given by MPI_Get_library_version(). Note that
- * this can be a long, multi-line string.
+ * Returns the information given by MPI_Get_library_version(). The output
+ * is different for each MPI library implementation, and can be a long,
+ * multi-line string.
  */
 int adiak_mpi_library();
-
+/** \brief Reports MPI library version and vendor information
+ *
+ * Makes mpi_library_version and mpi_library_vendor name/value pairs
+ * with the MPI library version and vendor. Uses the information
+ * provided by \a MPI_Get_library_version(), but parses out the library
+ * version and vendor. Currently this works for
+ * CRAY MPICH, IBM Spectrum MPI, Open MPI, MVAPICH2, and MPICH.
+ */
+int adiak_mpi_library_version();
 /** \brief Collect all available built-in Adiak name/value pairs
  *
  * This shortcut invokes all of the pre-defined routines that collect common
