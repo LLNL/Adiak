@@ -372,9 +372,9 @@ int adiak_mpi_library();
 /** \brief Reports MPI library version and vendor information
  *
  * Makes mpi_library_version and mpi_library_vendor name/value pairs
- * with the MPI library version and vendor. Uses the information
- * provided by \a MPI_Get_library_version(), but parses out the library
- * version and vendor. Currently this works for
+ * with the MPI library version and vendor. It parses out the version
+ * and vendor information from the string provided by
+ * \a MPI_Get_library_version(). Currently this works for
  * CRAY MPICH, IBM Spectrum MPI, Open MPI, MVAPICH2, and MPICH.
  */
 int adiak_mpi_library_version();
