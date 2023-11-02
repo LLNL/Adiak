@@ -1045,10 +1045,11 @@ int adiak_job_size()
 
 #if defined(USE_MPI)
    int result = -1;
-   if (adiak_config->use_mpi)
+   if (adiak_config->use_mpi) {
       result = adksys_jobsize(&size);
-   if (result == -1)
-      return -1;
+      if (result == -1)
+         return -1;
+   }
 #endif
    return adiak_namevalue("jobsize", adiak_general, "mpi", "%u", size);
 }
@@ -1095,6 +1096,50 @@ int adiak_cputime()
 {
    measure_adiak_cputime = 1;
    return 0;
+}
+
+int adiak_mpi_version()
+{
+#if defined(USE_MPI)
+   char buf[16];
+   int result = -1;
+   if (adiak_config->use_mpi)
+      result = adksys_mpi_version(buf, 16);
+   if (result == -1)
+      return -1;
+   return adiak_namevalue("mpi_version", adiak_general, "mpi", "%v", buf);
+#endif
+   return -1;
+}
+
+int adiak_mpi_library()
+{
+#if defined(USE_MPI)
+   char buf[2048];
+   int result = -1;
+   if (adiak_config->use_mpi)
+      result = adksys_mpi_library(buf, 2048);
+   if (result == -1)
+      return -1;
+   return adiak_namevalue("mpi_library", adiak_general, "mpi", "%s", buf);
+#endif
+   return -1;
+}
+
+int adiak_mpi_library_version()
+{
+#if defined(USE_MPI)
+   char vendor[80];
+   char version[40];
+   int result = -1;
+   if (adiak_config->use_mpi)
+      result = adksys_mpi_library_version(vendor, 80, version, 40);
+   if (result == -1)
+      return -1;
+   adiak_namevalue("mpi_library_vendor", adiak_general, "mpi", "%s", vendor);
+   adiak_namevalue("mpi_library_version", adiak_general, "mpi", "%v", version);
+#endif
+   return -1;
 }
 
 int adiak_collect_all()
@@ -1144,6 +1189,12 @@ int adiak_collect_all()
    if (ret == 0)
       ++count;
    ret = adiak_hostlist();
+   if (ret == 0)
+      ++count;
+   ret = adiak_mpi_version();
+   if (ret == 0)
+      ++count;
+   ret = adiak_mpi_library_version();
    if (ret == 0)
       ++count;
 

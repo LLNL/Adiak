@@ -6,6 +6,7 @@
 #include <mpi.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "adksys.h"
 
 #if !defined(USE_MPI)
@@ -20,10 +21,10 @@ static int hostname_color(char *str, int index)
 {
    int hash = 5381;
    int c;
-   
+
    while ((c = *str++))
       hash = ((hash << 5) + hash) + (c^index); /* hash * 33 + c */
-   
+
    return hash;
 }
 
@@ -43,12 +44,12 @@ static int get_unique_host(char *name, int global_rank)
       color = hostname_color(name, index++);
       if (color < 0)
          color *= -1;
-      
+
       result = MPI_Comm_split(oldcomm, color, global_rank, &newcomm);
       if (result != MPI_SUCCESS) {
          goto error;
       }
-      
+
       if (set_oldcomm) {
          MPI_Comm_free(&oldcomm);
          oldcomm = MPI_COMM_NULL;
@@ -56,7 +57,7 @@ static int get_unique_host(char *name, int global_rank)
 
       MPI_Comm_rank(newcomm, &rank);
       MPI_Comm_size(newcomm, &size);
-      
+
       if (rank == 0)
          strncpy(oname, name, MAX_HOSTNAME_LEN);
       result = MPI_Bcast(oname, MAX_HOSTNAME_LEN, MPI_CHAR, 0, newcomm);
@@ -74,11 +75,11 @@ static int get_unique_host(char *name, int global_rank)
       if (global_str_match) {
          break;
       }
-      
+
       set_oldcomm = 1;
       oldcomm = newcomm;
    }
-   
+
    err_ret = 0;
   error:
 
@@ -86,7 +87,7 @@ static int get_unique_host(char *name, int global_rank)
       MPI_Comm_free(&oldcomm);
    if (newcomm != adiak_communicator && newcomm != MPI_COMM_NULL)
       MPI_Comm_free(&newcomm);
-   
+
    if (err_ret == -1)
       return err_ret;
    return (rank == 0 ? 1 : 0);
@@ -130,7 +131,7 @@ static int gethostlist(char **hostlist, int *num_hosts, int *max_hostlen, int al
    MPI_Comm_free(&hostcomm);
 
    MPI_Bcast(max_hostlen, 1, MPI_INT, 0, adiak_communicator);
-   MPI_Bcast(num_hosts, 1, MPI_INT, 0, adiak_communicator);   
+   MPI_Bcast(num_hosts, 1, MPI_INT, 0, adiak_communicator);
    hostlist_size = (*max_hostlen) * (*num_hosts);
    if (!(*hostlist))
        *hostlist = (char *) malloc(hostlist_size);
@@ -149,7 +150,7 @@ int adksys_hostlist(char ***out_hostlist_array, int *out_num_hosts, char **out_n
 
    if (had_error)
       return -1;
-   
+
    if (hostlist)
       goto done;
 
@@ -162,7 +163,7 @@ int adksys_hostlist(char ***out_hostlist_array, int *out_num_hosts, char **out_n
 
    hostlist_array = malloc(sizeof(char *) * num_hosts);
    for (i = 0; i < num_hosts; i++)
-      hostlist_array[i] = hostlist + (i * max_hostlen);      
+      hostlist_array[i] = hostlist + (i * max_hostlen);
 
   done:
    *out_hostlist_array = hostlist_array;
@@ -186,6 +187,128 @@ int adksys_jobsize(int *size)
    if (result != MPI_SUCCESS)
       return -1;
    return 0;
+}
+
+int adksys_mpi_version(char* output, size_t output_size)
+{
+   int ret = snprintf(output, output_size, "%d.%d", MPI_VERSION, MPI_SUBVERSION);
+   return (ret >= 0 && ((size_t) ret) < output_size ? 0 : -1);
+}
+
+int adksys_mpi_library(char* output, size_t output_size)
+{
+   memset(output, 0, output_size);
+   char buf[MPI_MAX_LIBRARY_VERSION_STRING];
+   int len = MPI_MAX_LIBRARY_VERSION_STRING;
+   int err = MPI_Get_library_version(buf, &len);
+   if (err != MPI_SUCCESS || ((size_t) len) > output_size)
+      return -1;
+   strncpy(output, buf, output_size);
+   output[output_size-1] = '\0';
+   return 0;
+}
+
+int adksys_mpi_library_version(char* vendor, size_t vendor_len, char* version, size_t version_len)
+{
+   char info_buf[MPI_MAX_LIBRARY_VERSION_STRING];
+   int info_len = 0;
+
+   int err = MPI_Get_library_version(info_buf, &info_len);
+   if (err != MPI_SUCCESS)
+      return -1;
+
+   char* p = strstr(info_buf, "IBM Spectrum MPI");
+   if (p) {
+      /* Spectrum MPI is derived from Open MPI. The version info string looks like:
+         Open MPI v10.3.1.03rtm0, package: IBM Spectrum MPI, ident: IBM Spectrum MPI [...]
+       */
+       char* ver_str = NULL;
+       int ret = sscanf(info_buf, "Open MPI v%m[0-9a-z.]", &ver_str);
+       if (ret != 1)
+          return -1;
+       strncpy(vendor, "IBM Spectrum MPI", vendor_len);
+       strncpy(version, ver_str, version_len);
+       vendor[vendor_len-1] = '\0';
+       version[version_len-1] = '\0';
+       free(ver_str);
+       return 0;
+   }
+
+   p = strstr(info_buf, "CRAY MPICH");
+   if (p) {
+      /* Cray MPICH is derived from MPICH. The version info string looks like:
+         MPI VERSION    : CRAY MPICH version 8.1.27.20 [...]
+       */
+       char* ver_str = NULL;
+       int ret = sscanf(p, "CRAY MPICH version %m[0-9a-z.]", &ver_str);
+       if (ret != 1)
+          return -1;
+       strncpy(vendor, "CRAY MPICH", vendor_len);
+       strncpy(version, ver_str, version_len);
+       vendor[vendor_len-1] = '\0';
+       version[version_len-1] = '\0';
+       free(ver_str);
+       return 0;
+   }
+
+   p = strstr(info_buf, "MVAPICH2");
+   if (p) {
+      /* The version info string looks like:
+         MVAPICH2 Version      :\t2.3.7 [...]
+       */
+       p = strchr(info_buf, ':');
+       if (!p)
+          return -1;
+       char* ver_str = NULL;
+       int ret = sscanf(p, ": %m[0-9a-z.]", &ver_str);
+       if (ret != 1)
+          return -1;
+       strncpy(vendor, "MVAPICH2", vendor_len);
+       strncpy(version, ver_str, version_len);
+       vendor[vendor_len-1] = '\0';
+       version[version_len-1] = '\0';
+       free(ver_str);
+       return 0;
+   }
+
+   p = strstr(info_buf, "Open MPI");
+   if (p) {
+      /* The version info string looks like:
+         Open MPI v4.1.2, package: Open MPI [...]
+       */
+       char* ver_str = NULL;
+       int ret = sscanf(info_buf, "Open MPI v%m[0-9a-z.]", &ver_str);
+       if (ret != 1)
+          return -1;
+       strncpy(vendor, "Open MPI", vendor_len);
+       strncpy(version, ver_str, version_len);
+       vendor[vendor_len-1] = '\0';
+       version[version_len-1] = '\0';
+       free(ver_str);
+       return 0;
+   }
+
+   p = strstr(info_buf, "MPICH");
+   if (p) {
+      /* The version info string looks like:
+         MPICH Version      :3.4a2 [...]
+       */
+       p = strchr(info_buf, ':');
+       if (!p)
+          return -1;
+       char* ver_str = NULL;
+       int ret = sscanf(p, ": %m[0-9a-z.]", &ver_str);
+       if (ret != 1)
+          return -1;
+       strncpy(vendor, "MPICH", vendor_len);
+       strncpy(version, ver_str, version_len);
+       vendor[vendor_len-1] = '\0';
+       version[version_len-1] = '\0';
+       free(ver_str);
+       return 0;
+   }
+
+   return -1;
 }
 
 int adksys_reportable_rank()

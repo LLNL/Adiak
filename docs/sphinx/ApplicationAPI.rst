@@ -17,45 +17,52 @@ Adiak's implicit routines register commonly used name/value pairs about a
 job's execution environment under common names. The table below lists
 the available implicit routines, and the name/value pair they register.
 
-+----------------------------+----------------+-------------------------------------+
-| Function                   | Name           | Description                         |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`adiakversion`   | adiakversion   | Adiak library version               |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`user`           | user           | Name of user running the job        |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`uid`            | uid            | User ID of user running the job     |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`launchdate`     | launchdate     | Day/time of job launch (UNIX time)  |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`launchday`      | launchday      | Day of job launch (UNIX time)       |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`executable`     | executable     | Executable name                     |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`executablepath` | executablepath | Full path to the program executable |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`workdir`        | workdir        | Working directory for the job       |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`libraries`      | libraries      | Set of loaded shared libraries      |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`cmdline`        | cmdline        | Program command line parameters     |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`hostname`       | hostname       | Network host name                   |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`clustername`    | clustername    | Cluster name (hostname w/o numbers) |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`walltime`       | walltime       | Process walltime                    |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`cputime`        | cputime        | Process CPU time                    |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`systime`        | systime        | Process system time                 |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`jobsize`        | jobsize        | MPI job size                        |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`numhosts`       | numhosts       | Number of distinct nodes in MPI job |
-+----------------------------+----------------+-------------------------------------+
-| :cpp:func:`hostlist`       | hostlist       | List of distinct nodes in MPI job   |
-+----------------------------+----------------+-------------------------------------+
++---------------------------------+----------------+-------------------------------------+
+| Function                        | Name           | Description                         |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`adiakversion`        | adiakversion   | Adiak library version               |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`user`                | user           | Name of user running the job        |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`uid`                 | uid            | User ID of user running the job     |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`launchdate`          | launchdate     | Day/time of job launch (UNIX time)  |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`launchday`           | launchday      | Day of job launch (UNIX time)       |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`executable`          | executable     | Executable name                     |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`executablepath`      | executablepath | Full path to the program executable |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`workdir`             | workdir        | Working directory for the job       |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`libraries`           | libraries      | Set of loaded shared libraries      |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`cmdline`             | cmdline        | Program command line parameters     |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`hostname`            | hostname       | Network host name                   |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`clustername`         | clustername    | Cluster name (hostname w/o numbers) |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`walltime`            | walltime       | Process walltime                    |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`cputime`             | cputime        | Process CPU time                    |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`systime`             | systime        | Process system time                 |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`jobsize`             | jobsize        | MPI job size                        |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`numhosts`            | numhosts       | Number of distinct nodes in MPI job |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`hostlist`            | hostlist       | List of distinct nodes in MPI job   |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`mpi_version`         | mpi_version    | MPI standard version                |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`mpi_library`         | mpi_library    | MPI_Get_library_version() output    |
++---------------------------------+----------------+-------------------------------------+
+| :cpp:func:`mpi_library_version` | mpi_library_   | MPI library version and vendor      |
+|                                 | vendor/version |                                     |
++---------------------------------+----------------+-------------------------------------+
 
 The catchall function :cpp:func:`adiak_collect_all` function collects all of the
 common name/value pairs except walltime, systime, and cputime.
