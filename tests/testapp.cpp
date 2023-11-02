@@ -128,8 +128,6 @@ int main(
 #endif
    struct timeval start;
 
-   dowork(start);
-
    gettimeofday(&start, NULL);
 #if defined(USE_MPI)
    MPI_Init(&argc, &argv);
@@ -138,6 +136,7 @@ int main(
    adiak::init(NULL);
 #endif
 
+   dowork(start);
 
    adiak::fini();
    adiak::clean();

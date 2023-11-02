@@ -3,11 +3,13 @@
 //
 // SPDX-License-Identifier: MIT
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
+
 #include "adiak.h"
 #include "adiak_tool.h"
 #include "adksys.h"
@@ -53,19 +55,23 @@ static int measure_adiak_walltime;
 static int measure_adiak_systime;
 static int measure_adiak_cputime;
 
-static adiak_datatype_t base_long = { adiak_long, adiak_rational, 0, 0, NULL };
-static adiak_datatype_t base_ulong = { adiak_ulong, adiak_rational, 0, 0, NULL };
-static adiak_datatype_t base_longlong = { adiak_longlong, adiak_rational, 0, 0, NULL };
-static adiak_datatype_t base_ulonglong = { adiak_ulonglong, adiak_rational, 0, 0, NULL };
-static adiak_datatype_t base_int = { adiak_int, adiak_rational, 0, 0, NULL };
-static adiak_datatype_t base_uint = { adiak_uint, adiak_rational, 0, 0, NULL };
-static adiak_datatype_t base_double = { adiak_double, adiak_rational, 0, 0, NULL };
-static adiak_datatype_t base_date = { adiak_date, adiak_interval, 0, 0, NULL };
-static adiak_datatype_t base_timeval = { adiak_timeval, adiak_interval, 0, 0, NULL };
-static adiak_datatype_t base_version = { adiak_version, adiak_ordinal, 0, 0, NULL };
-static adiak_datatype_t base_string = { adiak_string, adiak_ordinal, 0, 0, NULL };
-static adiak_datatype_t base_catstring = { adiak_catstring, adiak_categorical, 0, 0, NULL };
-static adiak_datatype_t base_path = { adiak_path, adiak_categorical, 0, 0, NULL };
+static adiak_datatype_t base_long = { adiak_long, adiak_rational, 0, 0, NULL, 0, 0 };
+static adiak_datatype_t base_ulong = { adiak_ulong, adiak_rational, 0, 0, NULL, 0, 0 };
+static adiak_datatype_t base_longlong = { adiak_longlong, adiak_rational, 0, 0, NULL, 0, 0 };
+static adiak_datatype_t base_ulonglong = { adiak_ulonglong, adiak_rational, 0, 0, NULL, 0, 0 };
+static adiak_datatype_t base_int = { adiak_int, adiak_rational, 0, 0, NULL, 0, 0 };
+static adiak_datatype_t base_uint = { adiak_uint, adiak_rational, 0, 0, NULL, 0, 0 };
+static adiak_datatype_t base_double = { adiak_double, adiak_rational, 0, 0, NULL, 0, 0 };
+static adiak_datatype_t base_date = { adiak_date, adiak_interval, 0, 0, NULL, 0, 0 };
+static adiak_datatype_t base_timeval = { adiak_timeval, adiak_interval, 0, 0, NULL, 0, 0 };
+static adiak_datatype_t base_version = { adiak_version, adiak_ordinal, 0, 0, NULL, 0, 0 };
+static adiak_datatype_t base_string = { adiak_string, adiak_ordinal, 0, 0, NULL, 0, 0 };
+static adiak_datatype_t base_catstring = { adiak_catstring, adiak_categorical, 0, 0, NULL, 0, 0 };
+static adiak_datatype_t base_path = { adiak_path, adiak_categorical, 0, 0, NULL, 0, 0 };
+static adiak_datatype_t base_version_ref = { adiak_version, adiak_ordinal, 0, 0, NULL, 1, 0 };
+static adiak_datatype_t base_string_ref = { adiak_string, adiak_ordinal, 0, 0, NULL, 1, 0 };
+static adiak_datatype_t base_catstring_ref = { adiak_catstring, adiak_categorical, 0, 0, NULL, 1, 0 };
+static adiak_datatype_t base_path_ref = { adiak_path, adiak_categorical, 0, 0, NULL, 1, 0 };
 
 static void adiak_register(int adiak_version, int category,
                            adiak_nameval_cb_t nv,
@@ -74,12 +80,13 @@ static void adiak_register(int adiak_version, int category,
 static int find_end_brace(const char *typestr, char endchar, int typestr_start, int typestr_end);
 static adiak_datatype_t *parse_typestr(const char *typestr, va_list *ap);
 static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_start, int typestr_end,
-                                              va_list *ap, int *new_typestr_start);
+                                              int is_reference, va_list *ap, int *new_typestr_start);
 static void free_adiak_type(adiak_datatype_t *t);
 static void free_adiak_value(adiak_datatype_t *t, adiak_value_t *v);
 static void free_adiak_value_worker(adiak_datatype_t *t, adiak_value_t *v);
 
 static adiak_type_t toplevel_type(const char *typestr);
+static int calc_size(adiak_datatype_t *datatype);
 static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *ptr);
 
 static void record_nameval(const char *name, int category, const char *subcategory,
@@ -134,6 +141,7 @@ int adiak_namevalue(const char *name, int category, const char *subcategory, con
    adiak_type_t toptype;
    adiak_value_t *value = NULL;
    void *container_ptr = NULL;
+   char *string_ptr = NULL;
 
    toptype = toplevel_type(typestr);
    if (toptype == adiak_type_unset)
@@ -171,7 +179,7 @@ int adiak_namevalue(const char *name, int category, const char *subcategory, con
       case adiak_string:
       case adiak_catstring:
       case adiak_path:
-         value->v_ptr = strdup(va_arg(ap, void*));
+         string_ptr = va_arg(ap, char*);
          break;
       case adiak_range:
       case adiak_set:
@@ -188,8 +196,13 @@ int adiak_namevalue(const char *name, int category, const char *subcategory, con
       return -1;
    }
 
-   if (container_ptr) {
-      copy_value(value, t, container_ptr);
+   if (string_ptr) {
+      value->v_ptr = (t->is_reference ? string_ptr : strdup(string_ptr));
+   } else if (container_ptr) {
+      if (t->is_reference)
+         value->v_ptr = container_ptr;
+      else
+         copy_value(value, t, container_ptr);
    }
 
    return adiak_raw_namevalue(name, category, subcategory, value, t);
@@ -258,6 +271,97 @@ int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **va
          return 0;
       }
    }
+   return -1;
+}
+
+int adiak_num_subvals(adiak_datatype_t* t)
+{
+   return t->num_elements + t->num_ref_elements;
+}
+
+int adiak_get_subval(adiak_datatype_t* t, adiak_value_t* val, int elem, adiak_datatype_t** subtype, adiak_value_t* subval)
+{
+   /* Return if this is not a container type or we're out-of-bounds. */
+   if (elem < 0)
+      goto error;
+
+   /* Adiak-owned data:
+    * Data is in val->v_subval. Simply return the selected subvalue.
+    */
+   if (!t->is_reference) {
+      if (elem >= t->num_elements)
+         goto error;
+      *subtype = (t->dtype == adiak_tuple ? t->subtype[elem] : t->subtype[0]);
+      *subval = val->v_subval[elem];
+      return 0;
+   }
+
+   /* Zero-copy data:
+    * Data is in val->v_ptr. Make a adiak_value_t for the selected subvalue.
+    */
+
+   if (elem >= t->num_ref_elements)
+      goto error;
+
+   /* Compute offset of the selected subvalue. */
+   int bytes = 0;
+   if (t->dtype == adiak_tuple) {
+      for (int n = 0; n < elem; ++n) {
+         int s = calc_size(t->subtype[n]);
+         if (s < 0)
+            goto error;
+         bytes += s;
+      }
+      *subtype = t->subtype[elem];
+   } else {
+      bytes = elem * calc_size(t->subtype[0]);
+      if (bytes < 0)
+         goto error;
+      *subtype = t->subtype[0];
+   }
+
+   unsigned char* ptr = ((unsigned char*) val->v_ptr) + bytes;
+
+   switch ((*subtype)->dtype) {
+      case adiak_type_unset:
+         (*subval).v_ptr = NULL;
+         return -1;
+      case adiak_long:
+      case adiak_ulong:
+      case adiak_date:
+         (*subval).v_long = *((long *) ptr);
+         break;
+      case adiak_longlong:
+      case adiak_ulonglong:
+         (*subval).v_longlong = *((long long *) ptr);
+         break;
+      case adiak_int:
+      case adiak_uint:
+         (*subval).v_int = *((int *) ptr);
+         break;
+      case adiak_double:
+         (*subval).v_double = *((double *) ptr);
+         break;
+      case adiak_timeval:
+      case adiak_version:
+      case adiak_string:
+      case adiak_catstring:
+      case adiak_path:
+         (*subval).v_ptr = *((void**) ptr);
+         break;
+      case adiak_range:
+      case adiak_set:
+      case adiak_list:
+      case adiak_tuple:
+         (*subval).v_ptr = (void*) ptr;
+         break;
+   }
+
+   return 0;
+
+error:
+   *subtype = NULL;
+   (*subval).v_ptr = NULL;
    return -1;
 }
 
@@ -363,14 +467,14 @@ static adiak_datatype_t *parse_typestr(const char *typestr, va_list *ap)
    int len;
 
    len = strlen(typestr);
-   return parse_typestr_helper(typestr, 0, len, ap, &end);
+   return parse_typestr_helper(typestr, 0, len, 0, ap, &end);
 }
 
 static adiak_type_t toplevel_type(const char *typestr) {
    const char *cur = typestr;
    if (!cur)
       return adiak_type_unset;
-   while (*cur == ' ' || *cur == '\t' || *cur == '\n' || *cur == ',')
+   while (isspace(*cur) || *cur == ',' || *cur == '&')
       cur++;
    if (*cur == '%') {
       cur++;
@@ -447,12 +551,20 @@ adiak_datatype_t *adiak_get_basetype(adiak_type_t t)
    }
 }
 
+static int is_basetype(adiak_type_t t)
+{
+   return !(t == adiak_range ||
+      t == adiak_set  ||
+      t == adiak_list ||
+      t == adiak_tuple);
+}
+
 static void free_adiak_type(adiak_datatype_t *t)
 {
    int i;
    if (t == NULL)
       return;
-   if (adiak_get_basetype(t->dtype) == t)
+   if (is_basetype(t->dtype))
       return;
    for (i = 0; i < t->num_subtypes; i++) {
       free_adiak_type(t->subtype[i]);
@@ -465,6 +577,9 @@ static void free_adiak_type(adiak_datatype_t *t)
 static void free_adiak_value_worker(adiak_datatype_t *t, adiak_value_t *v) {
    int i;
    adiak_value_t *values;
+
+   if (t->is_reference)
+      return;
 
    switch (t->dtype) {
       case adiak_type_unset:
@@ -508,6 +623,46 @@ static void free_adiak_value(adiak_datatype_t *t, adiak_value_t *v) {
    free(v);
 }
 
+static int calc_size(adiak_datatype_t* datatype)
+{
+   switch (datatype->dtype) {
+      case adiak_type_unset:
+         return -1;
+      case adiak_long:
+      case adiak_ulong:
+      case adiak_date:
+         return sizeof(long);
+      case adiak_longlong:
+      case adiak_ulonglong:
+         return sizeof(long long);
+      case adiak_int:
+      case adiak_uint:
+         return sizeof(int);
+      case adiak_double:
+         return sizeof(double);
+      case adiak_timeval:
+         return sizeof(struct timeval *);
+      case adiak_version:
+      case adiak_string:
+      case adiak_catstring:
+      case adiak_path:
+         return sizeof(char *);
+      case adiak_range:
+      case adiak_set:
+      case adiak_list: {
+         int num_elements = datatype->num_elements + datatype->num_ref_elements;
+         return (num_elements * calc_size(datatype->subtype[0]));
+      }
+      case adiak_tuple: {
+         int bytes = 0;
+         for (int i = 0; i < datatype->num_subtypes; ++i)
+            bytes += calc_size(datatype->subtype[i]);
+         return bytes;
+      }
+   }
+   return -1;
+}
+
 static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *ptr) {
    int bytes_read = 0, result, type_index = 0, i;
    adiak_value_t *newvalues;
@@ -531,8 +686,11 @@ static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *p
          target->v_double= *((double *) ptr);
          return sizeof(double);
       case adiak_timeval: {
-         struct timeval *v = (struct timeval *) malloc(sizeof(struct timeval));
-         *v = *(struct timeval *) ptr;
+         struct timeval* v = (struct timeval*) ptr;
+         if (!datatype->is_reference) {
+             v = (struct timeval *) malloc(sizeof(struct timeval));
+            *v = *(struct timeval *) ptr;
+         }
          target->v_ptr = v;
          return sizeof(struct timeval *);
       }
@@ -540,12 +698,19 @@ static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *p
       case adiak_string:
       case adiak_catstring:
       case adiak_path:
-         target->v_ptr = strdup(*((void **) ptr));
+         {
+            char* sptr = (char*) *((void**) ptr);
+            target->v_ptr = (datatype->is_reference ? sptr : strdup(sptr));
+         }
          return sizeof(char *);
       case adiak_range:
       case adiak_set:
       case adiak_list:
       case adiak_tuple:
+         if (datatype->is_reference) {
+            target->v_ptr = ptr;
+            return calc_size(datatype);
+         }
          newvalues = (adiak_value_t *) malloc(sizeof(adiak_value_t) * datatype->num_elements);
          for (i = 0; i < datatype->num_elements; i++) {
             unsigned char *array_base = (unsigned char *) ptr;
@@ -562,21 +727,26 @@ static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *p
    return -1;
 }
 
-static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_start, int typestr_end,
+static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_start, int typestr_end, int is_reference,
                                        va_list *ap, int *new_typestr_start)
 
 {
    adiak_datatype_t *t = NULL;
    int cur = typestr_start;
-   int end_brace, i, is_long = 0, is_longlong = 0;
+   int end_brace, i;
+   int is_long = 0, is_longlong = 0;
 
    if (!typestr)
       goto error;
    if (typestr_start == typestr_end)
       goto error;
 
-   while (typestr[cur] == ' ' || typestr[cur] == '\t' || typestr[cur] == '\n' || typestr[cur] == ',')
+   while (isspace(typestr[cur]) || typestr[cur] == ',')
       cur++;
+   if (typestr[cur] == '&') {
+      is_reference = 1;
+      cur++;
+   }
 
    if (strchr("[{<(", typestr[cur])) {
       t = (adiak_datatype_t *) malloc(sizeof(adiak_datatype_t));
@@ -587,12 +757,15 @@ static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_s
                                  cur, typestr_end);
       if (end_brace == -1)
          goto error;
-      t->num_elements = va_arg(*ap, int);
+      int num_elements = va_arg(*ap, int);
+      t->num_elements = (is_reference ? 0 : num_elements);
+      t->num_ref_elements = (is_reference ? num_elements : 0);
       t->dtype = typestr[cur] == '{' ? adiak_list : adiak_set;
       t->numerical = adiak_categorical;
+      t->is_reference = is_reference;
       t->num_subtypes = 1;
       t->subtype = (adiak_datatype_t **) malloc(sizeof(adiak_datatype_t *));
-      t->subtype[0] = parse_typestr_helper(typestr, cur+1, end_brace, ap, &cur);
+      t->subtype[0] = parse_typestr_helper(typestr, cur+1, end_brace, is_reference, ap, &cur);
       if (t->subtype[0] == NULL)
          goto error;
       *new_typestr_start = end_brace+1;
@@ -603,11 +776,13 @@ static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_s
       if (end_brace == -1)
          goto error;
       t->dtype = adiak_range;
-      t->num_elements = 2;
       t->numerical = adiak_categorical;
+      t->is_reference = is_reference;
+      t->num_elements = (is_reference ? 0 : 2);
+      t->num_ref_elements = (is_reference ? 2 : 0);
       t->num_subtypes = 1;
       t->subtype = (adiak_datatype_t **) malloc(sizeof(adiak_datatype_t *));
-      t->subtype[0] = parse_typestr_helper(typestr, cur+1, end_brace, ap, &cur);
+      t->subtype[0] = parse_typestr_helper(typestr, cur+1, end_brace, is_reference, ap, &cur);
       if (t->subtype[0] == NULL)
          goto error;
       *new_typestr_start = end_brace+1;
@@ -619,12 +794,16 @@ static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_s
          goto error;
       t->dtype = adiak_tuple;
       t->numerical = adiak_categorical;
-      t->num_subtypes = t->num_elements = va_arg(*ap, int);
+      t->is_reference = is_reference;
+      int num_elements = va_arg(*ap, int);
+      t->num_elements = (is_reference ? 0 : num_elements);
+      t->num_ref_elements = (is_reference ? num_elements : 0);
+      t->num_subtypes = num_elements;
       t->subtype = (adiak_datatype_t **) malloc(sizeof(adiak_datatype_t *) * t->num_subtypes);
       memset(t->subtype, 0, sizeof(adiak_datatype_t *) * t->num_subtypes);
       cur++;
       for (i = 0; i < t->num_subtypes; i++) {
-         t->subtype[i] = parse_typestr_helper(typestr, cur, end_brace, ap, &cur);
+         t->subtype[i] = parse_typestr_helper(typestr, cur, end_brace, is_reference, ap, &cur);
          if (!t->subtype[i])
             goto error;
       }
@@ -656,16 +835,16 @@ static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_s
             t = &base_timeval;
             break;
          case 'v':
-            t = &base_version;
+            t = (is_reference ? &base_version_ref : &base_version);
             break;
          case 's':
-            t = &base_string;
+            t = (is_reference ? &base_string_ref : &base_string);
             break;
          case 'r':
-            t = &base_catstring;
+            t = (is_reference ? &base_catstring_ref : &base_catstring);
             break;
          case 'p':
-            t = &base_path;
+            t = (is_reference ? &base_path_ref : &base_path);
             break;
          default:
             goto error;

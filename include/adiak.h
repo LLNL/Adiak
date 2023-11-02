@@ -173,6 +173,10 @@ typedef struct adiak_datatype_t {
    int num_subtypes;
    /** \brief List of subtypes of compound types. NULL for other types. */
    struct adiak_datatype_t **subtype;
+   /** \brief Is this a reference (i.e., zero-copy) entry */
+   int is_reference;
+   /** \brief Number of elements for reference compound types */
+   int num_ref_elements;
 } adiak_datatype_t;
 
 /** \brief Adiak value union
@@ -213,7 +217,7 @@ typedef union adiak_value_t {
    long long v_longlong;
 } adiak_value_t;
 
-static const adiak_datatype_t adiak_unset_datatype = { adiak_type_unset, adiak_numerical_unset, 0, 0, NULL };
+static const adiak_datatype_t adiak_unset_datatype = { adiak_type_unset, adiak_numerical_unset, 0, 0, NULL, 0, 0 };
 
 /**
  * \}

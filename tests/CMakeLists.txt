@@ -12,3 +12,6 @@ blt_add_executable( NAME testapp
 blt_add_executable( NAME testapp-cxx
                     SOURCES testapp.cpp
                     DEPENDS_ON testlib adiak dl)
+blt_add_executable( NAME testapp-zerocopy
+                    SOURCES test_zerocopy.c
+                    DEPENDS_ON testlib adiak)
