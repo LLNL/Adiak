@@ -172,7 +172,9 @@ namespace adiak
       if (!result) {
          return false;
       }
-      result = adiak_raw_namevalue(name.c_str(), category, subcategory.c_str(), values, datatype);
+      adiak_value_t *range_val = (adiak_value_t *) malloc(sizeof(adiak_value_t));
+      range_val->v_subval = values;
+      result = adiak_raw_namevalue(name.c_str(), category, subcategory.c_str(), range_val, datatype);
       if (result != 0) {
          return false;
       }
