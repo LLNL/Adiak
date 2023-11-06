@@ -1,6 +1,10 @@
 name: CMake
 
-on: [push]
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -19,20 +23,20 @@ jobs:
       matrix:
         config:
           - {
-          name: "Ubuntu Latest GCC",
-          os: ubuntu-latest,
-          build_type: "Release", cc: "gcc", cxx: "g++"
-          }
+              name: "Ubuntu Latest GCC",
+              os: ubuntu-latest,
+              build_type: "Release", cc: "gcc", cxx: "g++"
+            }
           - {
-          name: "Ubuntu Latest Clang",
-          os: ubuntu-latest,
-          build_type: "Release", cc: "clang", cxx: "clang++"
-          }
+              name: "Ubuntu Latest Clang",
+              os: ubuntu-latest,
+              build_type: "Release", cc: "clang", cxx: "clang++"
+            }
           - {
-          name: "macOS Latest Clang",
-          os: macos-latest,
-          build_type: "Release", cc: "clang", cxx: "clang++"
-          }
+              name: "macOS Latest Clang",
+              os: macos-latest,
+              build_type: "Release", cc: "clang", cxx: "clang++"
+            }
     steps:
     - name: Checkout repository and submodules
       uses: actions/checkout@v2
@@ -65,4 +69,4 @@ jobs:
       shell: bash
       # Execute tests defined by the CMake configuration.  
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: make test
+      run: ctest --output-on-failure
