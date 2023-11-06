@@ -8,7 +8,7 @@
 #include <vector>
 
 
-TEST(AdiakGeneral, CXX_BasicTypes)
+TEST(AdiakApplicationAPI, CXX_BasicTypes)
 {
     EXPECT_TRUE(adiak::value("cxx:int", -42));
     EXPECT_TRUE(adiak::value("cxx:uint", 42u));
@@ -71,7 +71,7 @@ TEST(AdiakGeneral, CXX_BasicTypes)
     EXPECT_STREQ(subcat, "subcat:cxx");
 }
 
-TEST(AdiakGeneral, CXX_CompoundTypes)
+TEST(AdiakApplicationAPI, CXX_CompoundTypes)
 {
     EXPECT_TRUE(adiak::value("cxx:range:double", -1.0, 1.0));
 
@@ -140,7 +140,7 @@ TEST(AdiakGeneral, CXX_CompoundTypes)
     EXPECT_EQ(inner_subval.v_int, 3);
 }
 
-TEST(AdiakGeneral, C_BasicTypes)
+TEST(AdiakApplicationAPI, C_BasicTypes)
 {
     EXPECT_EQ(adiak_namevalue("c:int", adiak_general, NULL, "%d", -42), 0);
     EXPECT_EQ(adiak_namevalue("c:uint", adiak_general, NULL, "%u", 42u), 0);
@@ -198,7 +198,7 @@ TEST(AdiakGeneral, C_BasicTypes)
     EXPECT_STREQ(subcat, "subcat:c");
 }
 
-TEST(AdiakGeneral, C_CompoundTypes)
+TEST(AdiakApplicationAPI, C_CompoundTypes)
 {
     const double v_range[] = { -1.0, 1.0 };
     const int v_ints[] = { 1, 2, 3 };
@@ -272,7 +272,7 @@ static const struct int_string_tuple s_hello_data[3] = {
     { 1, "Hello" }, { 2, "Adiak" }, { 9876543210, "!" }
 };
 
-TEST(AdiakGeneral, C_ZeroCopyTypes)
+TEST(AdiakApplicationAPI, C_ZeroCopyTypes)
 {
     /* zero-copy list of ints */
     EXPECT_EQ(adiak_namevalue("cz:ref:vec:int", adiak_general, NULL, "&{%d}", s_array, 9), 0);

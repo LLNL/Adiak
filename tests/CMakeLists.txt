@@ -16,8 +16,8 @@ blt_add_executable( NAME testapp-zerocopy
                     SOURCES test_zerocopy.c
                     DEPENDS_ON testlib adiak )
 
-blt_add_executable(NAME adiak_gtest 
-    SOURCES adiak_gtest.cpp 
+blt_add_executable(NAME test_adiak
+    SOURCES test_application-api.cpp 
     DEPENDS_ON adiak gtest)
-blt_add_test(NAME adiak_gtest 
-    COMMAND adiak_gtest)
+blt_add_test(NAME test_adiak
+    COMMAND test_adiak)
