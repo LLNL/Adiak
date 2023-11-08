@@ -165,6 +165,54 @@ when given specific STL containers as value, e.g. ``std::tuple`` for tuples or
 For detailed information on how to create each compound type, refer to the
 :cpp:enum:`adiak_type_t` documentation.
 
+.. _reference_values:
+
+Reference values
+................................
+
+Optionally, values can be stored as references, where Adiak does not copy the data
+but only keeps a pointer to it. 
+Reference entries are available for string types and compound types (lists, sets, 
+etc.). Scalar types (int, double, etc.) cannot be stored as references. 
+
+Any objects stored as references must be retained in memory by the application
+throughout the lifetime of the program or until :cpp:func:`adiak_clean` is called.
+
+Currently, reference values must be created through the C API. To do so,
+place a ``&`` in front of the type specifier in :cpp:func:`adiak_namevalue`, 
+e.g. ``&{%d}`` for a list of integers or ``&%s`` for a string. For compound
+types, the ``&`` can be applied to an inner type to create a shallow copy, e.g.
+``{&%s}`` for a shallow-copy list of zero-copy strings. Examples:
+
+.. code-block:: c 
+
+   static const int array[9] = { -1, 2, -3, 4, 5, 4, 3, 2, 1 };
+   static const char* string_a = "A long string";
+   static const char* string_b = "Another long string";
+
+   struct int_string_tuple {
+       long long i; const char* str;
+   };
+   static const struct int_string_tuple data[3] = {
+       { 1, "Hello" }, { 2, "Adiak" }, { 3, "!" }
+   };
+
+   /* A zero-copy list of ints */
+   adiak_namevalue("array", adiak_general, NULL, "&{%d}", array, 9);
+   /* A zero-copy string */
+   adiak_namevalue("string", adiak_general, NULL, "&%s", string_a);
+   /* A set of zero-copy strings (shallow-copies the list but not the strings)*/
+   const char* strings[2] = { string_a, string_b };
+   adiak_namevalue("set_of_strings", adiak_general, NULL, "[&%s]", strings, 2);
+   /* A full deep copy list of tuples */
+   adiak_namevalue("data_deepcopy", adiak_general, NULL, "{(%lld,%s)}", hello_data, 3, 2);
+   /* A zero-copy list of tuples */
+   adiak_namevalue("data_ref_0", adiak_general, NULL, "&{(%lld,%s)}", hello_data, 3, 2);
+   /* A shallow-copy list of zero-copy tuples */
+   adiak_namevalue("data_ref_1", adiak_general, NULL, "{&(%lld,%s)}", hello_data, 3, 2);
+   /* A shallow-copy list of tuples with zero-copy strings */
+   adiak_namevalue("data_ref_2", adiak_general, NULL, "{(%lld,&%s)}", hello_data, 3, 2);
+
 API reference
 --------------------------------
 

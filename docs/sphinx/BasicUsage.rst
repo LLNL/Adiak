@@ -81,8 +81,19 @@ date and time. There are a larger set of standardized names in the
 :doc:`ApplicationAPI` section. Equivalent functions are also available
 in the C interface.
 
-The :cpp:func:`collect_all` convenience function collects all of Adiak's built-in
-name/value pairs.
+The :cpp:func:`collect_all` (or :cpp:func:`adiak_collect_all` in C) convenience
+function collects all available built-in name/value pairs:
+
+.. code-block:: c
+
+  #include <adiak.h>
+
+  int main(int argc, char* argv[])
+  {
+    adiak_init(NULL);
+    adiak_collect_all();
+    adiak_fini();
+  }
 
 Tool Interface
 -----------------
@@ -138,25 +149,21 @@ other important design decisions.
 Memory Management and Data Lifetime
 ...................................
 
-Adiak makes a copy of every data value that is passed through the
-application interface. This means that:
-
-* It is safe to free data values after passing them to Adiak.
-* Adiak is not appropriate for large data structures that consume
-  a significant fraction of memory.
-
+By default, Adiak makes a copy of every data value that is passed
+through the application interface. This means that it is safe to
+free data values after passing them to Adiak.
 Adiak's data copies are deep, which means that containers and pointers
 are followed when doing the copy.
 
-The adiak utility API has calls, such as :cpp:func:`adiak_clean`,
-which deallocate all data value copies made by Adiak.
+There is also an option to create reference values where only a pointer
+to the data is stored, which is useful for for large data structures
+that consume a significant fraction of memory. See :ref:`reference_values`
+to learn more.
 
-The name C-style strings passed to Adiak are not copied—Adiak only
-retains a pointer to these strings. The application should ensure
-that such strings have a program lifetime or through the next
-``adiak_clean`` call.
+The adiak utility API provides the :cpp:func:`adiak_clean` call,
+which deallocates all data value copies made by Adiak.
 
-The tool interface can retain pointers to Adiak data values, through
+The tool interface can retain pointers to Adiak data values, though
 if it does so the tool should watch for ``adiak_clean`` operations to
 clean those pointers.
 

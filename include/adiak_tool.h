@@ -105,6 +105,11 @@ int adiak_num_subvals(adiak_datatype_t* t);
  * regardless of whether the container type is a reference type or
  * a Adiak copy.
  *
+ * This function works for both Adiak-created deep copies (where values
+ * are stored as individual \a adiak_value_t entries in \a val->v_subvals)
+ * and reference entries (where the original pointer is stored as
+ * \a val->v_ptr).
+ *
  * Returns NULL in \a subtype and in \a subvalue.v_ptr if the given
  * value is not a container type or \a elem is out-of-bounds.
  * 

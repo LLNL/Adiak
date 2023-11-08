@@ -87,10 +87,15 @@ typedef enum {
 typedef enum {
    /** \brief A placeholder for uninitialized types */
    adiak_type_unset = 0,
+   /** \brief A C \c long */
    adiak_long,
+   /** \brief A C <tt> unsigned long </tt> */
    adiak_ulong,
+   /** \brief A C \c int */
    adiak_int,
+   /** \brief A C <tt> unsigned int </tt> */
    adiak_uint,
+   /** \brief A C \c double */
    adiak_double,
    /** \brief A date. Passed as a signed long in seconds since epoch. */
    adiak_date,
@@ -147,7 +152,9 @@ typedef enum {
     * N elements.
     */
    adiak_tuple,
+   /** \brief A C <tt> long long </tt> */
    adiak_longlong,
+   /** \brief A C <tt> unsigned long long </tt> */
    adiak_ulonglong
 } adiak_type_t;
 
@@ -164,18 +171,23 @@ typedef struct adiak_datatype_t {
    adiak_type_t dtype;
    /** \brief Value category of this datatype */
    adiak_numerical_t numerical;
-   /** \brief Number of elements for compound types (e.g., number of list elements). */
+   /** \brief Number of elements for container types (e.g., number of list elements).
+    *
+    * This is the number of sub-elements if the container is a
+    * Adiak-created copy (which is the default). The number of sub-elements
+    * of reference (zero copy) containers is in \ref num_ref_elements.
+    */
    int num_elements;
    /** \brief Number of sub-types.
     *
-    * Should be N for tuples, 1 for other compound types, and 0 for basic types.
+    * Should be N for tuples, 1 for other container types, and 0 for basic types.
     */
    int num_subtypes;
-   /** \brief List of subtypes of compound types. NULL for other types. */
+   /** \brief List of subtypes of container types. NULL for other types. */
    struct adiak_datatype_t **subtype;
-   /** \brief Is this a reference (i.e., zero-copy) entry */
+   /** \brief 1 if this a reference (i.e., zero-copy) entry, 0 if not */
    int is_reference;
-   /** \brief Number of elements for reference compound types */
+   /** \brief Number of sub-elements for reference container values */
    int num_ref_elements;
 } adiak_datatype_t;
 
@@ -199,12 +211,15 @@ typedef struct adiak_datatype_t {
  * adiak_string    | v_ptr (cast to char*)
  * adiak_catstring | v_ptr (cast to char*)
  * adiak_path      | v_ptr (cast to char*)
- * adiak_range     | v_subval (as adiak_value_t[2])
- * adiak_set       | v_subval (as adiak_value_t array)
- * adiak_list      | v_subval (as adiak_value_t array)
- * adiak_tuple     | v_subval (as adiak_value_t array)
+ * adiak_range     | v_subval (as adiak_value_t[2]) [*]
+ * adiak_set       | v_subval (as adiak_value_t array) [*]
+ * adiak_list      | v_subval (as adiak_value_t array) [*]
+ * adiak_tuple     | v_subval (as adiak_value_t array) [*]
  * adiak_longlong  | v_longlong
  * adiak_ulonglong | v_longlong (as unsigned long long)
+ *
+ * [*] Reference (zero-copy) container types store the original
+ * input pointer in v_ptr.
  */
 typedef union adiak_value_t {
    signed long v_long;
@@ -262,7 +277,7 @@ void adiak_fini();
  * from the string specifiers shown in \ref adiak_type_t. The varargs contain the value
  * and, if needed, any additional parameters for the type (e.g., list length).
  *
- * An example:
+ * Examples:
  *
  * \code
  * adiak_namevalue("numrecords", adiak_general, NULL, "%d", 10);
@@ -274,6 +289,32 @@ void adiak_fini();
  *
  * struct { int pos; const char *val; } letters[3] = { {1, "a"}, {2, "b"}, {3, "c"} };
  * adiak_namevalue("alphabet", adiak_general, NULL, "[(%d, %s)]", letters, 3, 2);
+ * \endcode
+ *
+ * By default, Adiak makes deep copies of the provided names and values, so it is
+ * safe to free the provided objects. Optionally, one can prefix the type specifier
+ * with \a & to create a reference entry where Adiak does not copy the data
+ * but only stores the provided pointer. In this case, the data objects must be
+ * retained until program exit or until \ref adiak_clean is called.
+ *
+ * Only string or compound/container types (list, set, etc.) can be stored as
+ * references. For compound types, the `&` can be applied to an inner type to create
+ * a shallow copy, e.g. \a {&%s} for a shallow-copy list of zero-copy strings.
+ *
+ * Examples:
+ *
+ * \code
+ * static const char* strings[2] = { "A string", "Another string" };
+ *
+ * // zero-copy string
+ * adiak_namevalue("string", adiak_general, NULL, "&%s", strings[0]);
+ * // deep-copy list of strings
+ * adiak_namevalue("list_0", adiak_general, NULL, "{%s}", strings);
+ * // zero-copy list of strings
+ * adiak_namevalue("list_1", adiak_general, NULL, "&{%s}", strings);
+ * const char* reverse[2] = { strings[1], strings[0] };
+ * // shallow-copy list of zero-copy strings
+ * adiak_namevalue("list_2", adiak_general, NULL, "{&%s}", reverse);
  * \endcode
  *
  * \param name Name of the Adiak name/value pair. Adiak makes a copy of the string, and
