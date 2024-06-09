@@ -25,15 +25,6 @@ typedef struct adiak_tool_t {
    int category;
 } adiak_tool_t;
 
-typedef struct {
-   int minimum_version;
-   int version;
-   int report_on_all_ranks;
-   int reportable_rank;
-   adiak_tool_t **tool_list;
-   int use_mpi;
-} adiak_t;
-
 typedef struct record_list_t {
    const char *name;
    int category;
@@ -44,11 +35,21 @@ typedef struct record_list_t {
    struct record_list_t *hash_next;
 } record_list_t;
 
+typedef struct {
+   int minimum_version;
+   int version;
+   int report_on_all_ranks;
+   int reportable_rank;
+   adiak_tool_t **tool_list;
+   int use_mpi;
+   record_list_t **shared_record_list;
+} adiak_t;
+
 static adiak_t *adiak_config;
 static volatile adiak_tool_t **tool_list;
 
 static adiak_tool_t *local_tool_list;
-adiak_t adiak_public = { ADIAK_VERSION, ADIAK_VERSION, 0, 1, &local_tool_list, 0 };
+adiak_t adiak_public = { ADIAK_VERSION, ADIAK_VERSION, 0, 1, &local_tool_list, 0, 0 };
 
 
 static int measure_adiak_walltime;
@@ -247,7 +248,7 @@ void adiak_register_cb(int adiak_version, int category,
 void adiak_list_namevals(int adiak_version, int category, adiak_nameval_cb_t nv, void *opaque_val)
 {
    record_list_t *i;
-   for (i = record_list; i != NULL; i = i->list_next) {
+   for (i = *adiak_config->shared_record_list; i != NULL; i = i->list_next) {
       if (category != adiak_category_all && i->category != category)
          continue;
       nv(i->name, i->category, i->subcategory, i->value, i->dtype, opaque_val);
@@ -418,6 +419,8 @@ void adiak_fini()
 
    val.v_int = 0;
    adiak_raw_namevalue("fini", adiak_control, NULL, &val, &base_int);
+
+   adiak_config->shared_record_list = &record_list;
 }
 
 static void adiak_register(int adiak_version, int category,
