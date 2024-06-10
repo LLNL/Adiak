@@ -49,7 +49,7 @@ static adiak_t *adiak_config;
 static volatile adiak_tool_t **tool_list;
 
 static adiak_tool_t *local_tool_list;
-adiak_t adiak_public = { ADIAK_VERSION, ADIAK_VERSION, 0, 1, &local_tool_list, 0, 0 };
+adiak_t adiak_public = { ADIAK_VERSION, ADIAK_VERSION, 0, 1, &local_tool_list, 0, NULL };
 
 
 static int measure_adiak_walltime;
