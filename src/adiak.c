@@ -42,7 +42,7 @@ typedef struct {
    int reportable_rank;
    adiak_tool_t **tool_list;
    int use_mpi;
-   record_list_t **shared_record_list;
+   record_list_t *shared_record_list;
 } adiak_t;
 
 static adiak_t *adiak_config;
@@ -98,7 +98,6 @@ static int measure_systime();
 static int measure_cputime();
 
 #define RECORD_HASH_SIZE 128
-static record_list_t *record_list;
 static record_list_t *record_list_end;
 static record_list_t *record_hash[RECORD_HASH_SIZE];
 
@@ -248,7 +247,7 @@ void adiak_register_cb(int adiak_version, int category,
 void adiak_list_namevals(int adiak_version, int category, adiak_nameval_cb_t nv, void *opaque_val)
 {
    record_list_t *i;
-   for (i = *adiak_config->shared_record_list; i != NULL; i = i->list_next) {
+   for (i = adiak_config->shared_record_list; i != NULL; i = i->list_next) {
       if (category != adiak_category_all && i->category != category)
          continue;
       nv(i->name, i->category, i->subcategory, i->value, i->dtype, opaque_val);
@@ -259,7 +258,7 @@ void adiak_list_namevals(int adiak_version, int category, adiak_nameval_cb_t nv,
 int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **value,  int *cat, const char **subcat)
 {
    record_list_t *i;
-   for (i = record_list; i != NULL; i = i->list_next) {
+   for (i = adiak_config->shared_record_list; i != NULL; i = i->list_next) {
       if (strcmp(i->name, name) == 0) {
          if (t)
             *t = i->dtype;
@@ -419,8 +418,6 @@ void adiak_fini()
 
    val.v_int = 0;
    adiak_raw_namevalue("fini", adiak_control, NULL, &val, &base_int);
-
-   adiak_config->shared_record_list = &record_list;
 }
 
 static void adiak_register(int adiak_version, int category,
@@ -910,8 +907,8 @@ static void record_nameval(const char *name, int category, const char *subcatego
 
    addrecord->name = (const char *) strdup(name);
    addrecord->list_next = NULL;
-   if (!record_list) {
-      record_list = record_list_end = addrecord;
+   if (!adiak_config->shared_record_list) {
+      adiak_config->shared_record_list = record_list_end = addrecord;
    }
    else {
       record_list_end->list_next = addrecord;
@@ -937,7 +934,7 @@ int adiak_clean()
 
    val.v_int = 0;
    result = adiak_raw_namevalue("clean", adiak_control, NULL, &val, &base_int);
-   for (i = record_list; i != NULL; i = next) {
+   for (i = adiak_config->shared_record_list; i != NULL; i = next) {
       free_adiak_value(i->dtype, i->value);
       free_adiak_type(i->dtype);
       free((void *) i->name);
@@ -947,7 +944,7 @@ int adiak_clean()
       free(i);
    }
    memset(record_hash, 0, sizeof(record_hash));
-   record_list = record_list_end = NULL;
+   adiak_config->shared_record_list = record_list_end = NULL;
    return result;
 }
 
