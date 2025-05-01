@@ -74,6 +74,11 @@ static void print_value(adiak_value_t *val, adiak_datatype_t *t)
          printf("\"%s\":catstring", s);
          break;
       }
+      case adiak_jsonstring: {
+         char *s = (char *) val->v_ptr;
+         printf("\"%s\":jsonstring", s);
+         break;
+      }
       case adiak_path: {
          char *s = (char *) val->v_ptr;
          printf("\"%s\":path", s);

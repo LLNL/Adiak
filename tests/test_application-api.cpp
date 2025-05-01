@@ -18,6 +18,7 @@ TEST(AdiakApplicationAPI, CXX_BasicTypes)
     EXPECT_TRUE(adiak::value("cxx:version", adiak::version("1.2.3a4")));
     EXPECT_TRUE(adiak::value("cxx:path", adiak::path("/a/b/c")));
     EXPECT_TRUE(adiak::value("cxx:catstring", adiak::catstring(std::string("cat"))));
+    EXPECT_TRUE(adiak::value("cxx:json", adiak::jsonstring(std::string("{ \"json\": true }"))));
 
     const int test_cat = 4242;
     EXPECT_TRUE(adiak::value("cxx:new_category", 42, test_cat, "subcat:cxx"));
@@ -63,6 +64,10 @@ TEST(AdiakApplicationAPI, CXX_BasicTypes)
     EXPECT_EQ(adiak_get_nameval("cxx:catstring", &dtype, &val, nullptr, nullptr), 0);
     EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_catstring);
     EXPECT_STREQ(static_cast<char*>(val->v_ptr), "cat");
+
+    EXPECT_EQ(adiak_get_nameval("cxx:json", &dtype, &val, nullptr, nullptr), 0);
+    EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_jsonstring);
+    EXPECT_STREQ(static_cast<char*>(val->v_ptr), "{ \"json\": true }");
 
     EXPECT_EQ(adiak_get_nameval("cxx:new_category", &dtype, &val, &cat, &subcat), 0);
     EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_int);
@@ -149,6 +154,7 @@ TEST(AdiakApplicationAPI, C_BasicTypes)
     EXPECT_EQ(adiak_namevalue("c:version", adiak_general, NULL, "%v", "1.2.3a4"), 0);
     EXPECT_EQ(adiak_namevalue("c:path", adiak_general, NULL, "%p", "/a/b/c"), 0);
     EXPECT_EQ(adiak_namevalue("c:catstring", adiak_general, NULL, "%r", "cat"), 0);
+    EXPECT_EQ(adiak_namevalue("c:json", adiak_general, NULL, "%j", "{ \"json\": true }"), 0);
 
     const int test_cat = 4242;
     EXPECT_EQ(adiak_namevalue("c:new_category", test_cat, "subcat:c", "%d", 42), 0);
@@ -190,6 +196,10 @@ TEST(AdiakApplicationAPI, C_BasicTypes)
     EXPECT_EQ(adiak_get_nameval("c:catstring", &dtype, &val, nullptr, nullptr), 0);
     EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_catstring);
     EXPECT_STREQ(static_cast<char*>(val->v_ptr), "cat");
+
+    EXPECT_EQ(adiak_get_nameval("c:json", &dtype, &val, nullptr, nullptr), 0);
+    EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_jsonstring);
+    EXPECT_STREQ(static_cast<char*>(val->v_ptr), "{ \"json\": true }");
 
     EXPECT_EQ(adiak_get_nameval("c:new_category", &dtype, &val, &cat, &subcat), 0);
     EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_int);

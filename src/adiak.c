@@ -68,10 +68,12 @@ static adiak_datatype_t base_timeval = { adiak_timeval, adiak_interval, 0, 0, NU
 static adiak_datatype_t base_version = { adiak_version, adiak_ordinal, 0, 0, NULL, 0, 0 };
 static adiak_datatype_t base_string = { adiak_string, adiak_ordinal, 0, 0, NULL, 0, 0 };
 static adiak_datatype_t base_catstring = { adiak_catstring, adiak_categorical, 0, 0, NULL, 0, 0 };
+static adiak_datatype_t base_jsonstring = { adiak_jsonstring, adiak_categorical, 0, 0, NULL, 0, 0 };
 static adiak_datatype_t base_path = { adiak_path, adiak_categorical, 0, 0, NULL, 0, 0 };
 static adiak_datatype_t base_version_ref = { adiak_version, adiak_ordinal, 0, 0, NULL, 1, 0 };
 static adiak_datatype_t base_string_ref = { adiak_string, adiak_ordinal, 0, 0, NULL, 1, 0 };
 static adiak_datatype_t base_catstring_ref = { adiak_catstring, adiak_categorical, 0, 0, NULL, 1, 0 };
+static adiak_datatype_t base_jsonstring_ref = { adiak_jsonstring, adiak_categorical, 0, 0, NULL, 1, 0 };
 static adiak_datatype_t base_path_ref = { adiak_path, adiak_categorical, 0, 0, NULL, 1, 0 };
 
 static void adiak_common_init();
@@ -180,6 +182,7 @@ int adiak_namevalue(const char *name, int category, const char *subcategory, con
       case adiak_version:
       case adiak_string:
       case adiak_catstring:
+      case adiak_jsonstring:
       case adiak_path:
          string_ptr = va_arg(ap, char*);
          break;
@@ -230,6 +233,7 @@ adiak_numerical_t adiak_numerical_from_type(adiak_type_t dtype)
       case adiak_string:
          return adiak_ordinal;
       case adiak_catstring:
+      case adiak_jsonstring:
       case adiak_path:
       case adiak_range:
       case adiak_set:
@@ -350,6 +354,7 @@ int adiak_get_subval(adiak_datatype_t* t, adiak_value_t* val, int elem, adiak_da
       case adiak_version:
       case adiak_string:
       case adiak_catstring:
+      case adiak_jsonstring:
       case adiak_path:
          (*subval).v_ptr = *((void**) ptr);
          break;
@@ -501,6 +506,7 @@ static adiak_type_t toplevel_type(const char *typestr) {
          case 'v': return adiak_version;
          case 's': return adiak_string;
          case 'r': return adiak_catstring;
+         case 'j': return adiak_jsonstring;
          case 'p': return adiak_path;
          default:
             return adiak_type_unset;
@@ -544,6 +550,8 @@ adiak_datatype_t *adiak_get_basetype(adiak_type_t t)
          return &base_string;
       case adiak_catstring:
          return &base_catstring;
+      case adiak_jsonstring:
+         return &base_jsonstring;
       case adiak_path:
          return &base_path;
       case adiak_range:
@@ -600,6 +608,7 @@ static void free_adiak_value_worker(adiak_datatype_t *t, adiak_value_t *v) {
       case adiak_version:
       case adiak_string:
       case adiak_catstring:
+      case adiak_jsonstring:
       case adiak_path:
          free(v->v_ptr);
          break;
@@ -649,6 +658,7 @@ static int calc_size(adiak_datatype_t* datatype)
       case adiak_version:
       case adiak_string:
       case adiak_catstring:
+      case adiak_jsonstring:
       case adiak_path:
          return sizeof(char *);
       case adiak_range:
@@ -701,6 +711,7 @@ static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *p
       case adiak_version:
       case adiak_string:
       case adiak_catstring:
+      case adiak_jsonstring:
       case adiak_path:
          {
             char* sptr = (char*) *((void**) ptr);
@@ -846,6 +857,9 @@ static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_s
             break;
          case 'r':
             t = (is_reference ? &base_catstring_ref : &base_catstring);
+            break;
+         case 'j':
+            t = (is_reference ? &base_jsonstring_ref : &base_jsonstring);
             break;
          case 'p':
             t = (is_reference ? &base_path_ref : &base_path);
@@ -1430,6 +1444,9 @@ static int adiak_type_string_helper(adiak_datatype_t *t, char *str, int len, int
          break;
       case adiak_catstring:
          simple = long_form ? "catstring" : "%r";
+         break;
+      case adiak_jsonstring:
+         simple = long_form ? "jsonstring" : "%j";
          break;
       case adiak_path:
          simple = long_form ? "path" : "%p";
