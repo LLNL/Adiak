@@ -30,7 +30,8 @@ namespace adiak
    struct version;
    struct path;
    struct catstring;
-   
+   struct jsonstring;
+
    namespace internal {
       template<typename T> struct element_type {
          static const adiak_type_t dtype = adiak_type_unset;
@@ -116,37 +117,41 @@ namespace adiak
          static const adiak_type_t dtype = adiak_catstring;
          static void set(adiak_value_t &v, adiak::catstring p) { v.v_ptr = strdup(p.v.c_str()); }
       };
+      template<> struct element_type<adiak::jsonstring> {
+         static const adiak_type_t dtype = adiak_jsonstring;
+         static void set(adiak_value_t &v, adiak::jsonstring p) { v.v_ptr = strdup(p.v.c_str()); }
+      };
       template<typename U> struct element_type<std::set<U> > {
          static const adiak_type_t dtype = adiak_set;
          static void set(adiak_value_t &v, void *p) { v.v_ptr = p; }
       };
       template<typename U> struct element_type<std::unordered_set<U> > {
          static const adiak_type_t dtype = adiak_set;
-         static void set(adiak_value_t &v, void *p) { v.v_ptr = p; }         
+         static void set(adiak_value_t &v, void *p) { v.v_ptr = p; }
       };
       template<typename U> struct element_type<std::multiset<U> > {
          static const adiak_type_t dtype = adiak_set;
-         static void set(adiak_value_t &v, void *p) { v.v_ptr = p; }         
+         static void set(adiak_value_t &v, void *p) { v.v_ptr = p; }
       };
       template<typename U> struct element_type<std::vector<U> > {
          static const adiak_type_t dtype = adiak_list;
-         static void set(adiak_value_t &v, void *p) { v.v_ptr = p; }         
+         static void set(adiak_value_t &v, void *p) { v.v_ptr = p; }
       };
       template<typename U> struct element_type<std::list<U> > {
          static const adiak_type_t dtype = adiak_list;
-         static void set(adiak_value_t &v, void *p) { v.v_ptr = p; }         
+         static void set(adiak_value_t &v, void *p) { v.v_ptr = p; }
       };
       template<typename U, std::size_t N> struct element_type<std::array<U, N> > {
          static const adiak_type_t dtype = adiak_list;
-         static void set(adiak_value_t &v, void *p) { v.v_ptr = p; }         
+         static void set(adiak_value_t &v, void *p) { v.v_ptr = p; }
       };
       template<typename U> struct element_type<std::deque<U> > {
          static const adiak_type_t dtype = adiak_list;
-         static void set(adiak_value_t &v, void *p) { v.v_ptr = p; }         
+         static void set(adiak_value_t &v, void *p) { v.v_ptr = p; }
       };
       template<typename... U> struct element_type<std::tuple<U...> > {
          static const adiak_type_t dtype = adiak_tuple;
-         static void set(adiak_value_t &v, void *p) { v.v_ptr = p; }         
+         static void set(adiak_value_t &v, void *p) { v.v_ptr = p; }
       };
 
       template <typename T>
@@ -155,7 +160,7 @@ namespace adiak
          static adiak_datatype_t *make_type() {
             adiak_type_t dtype = element_type<T>::dtype;
             adiak_datatype_t *datatype = adiak_get_basetype(dtype);
-            return datatype;      
+            return datatype;
          }
          static bool make_value(T &obj, adiak_value_t *val, adiak_datatype_t *) {
             element_type<T>::set(*val, obj);
@@ -166,7 +171,7 @@ namespace adiak
             return true;
          }
       };
-      
+
       template <typename T>
       static adiak_datatype_t *make_range_t() {
          adiak_datatype_t *datatype = (adiak_datatype_t *) malloc(sizeof(adiak_datatype_t));
@@ -181,8 +186,8 @@ namespace adiak
             datatype = NULL;
          }
          return datatype;
-      }         
-      
+      }
+
       template <typename T>
       struct create_container_type
       {
@@ -206,7 +211,7 @@ namespace adiak
             adiak_value_t *valarray = (adiak_value_t *) malloc(sizeof(adiak_value_t) * c.size());
             int j = 0;
             for (typename T::iterator i = c.begin(); i != c.end(); i++) {
-               bool result = parse<typename T::value_type>::make_value(*i, valarray + j++, dtype->subtype[0]);               
+               bool result = parse<typename T::value_type>::make_value(*i, valarray + j++, dtype->subtype[0]);
                if (!result)
                   return false;
             }
@@ -215,7 +220,7 @@ namespace adiak
             return true;
          }
       };
-      
+
       template<typename T> struct parse<std::set<T> > {
          static adiak_datatype_t *make_type() {
             return create_container_type<std::set<T> >::make_type();
@@ -272,7 +277,7 @@ namespace adiak
             return create_container_type<std::deque<T> >::make_value(c, value, dtype);
          }
       };
-      
+
       template <typename T, std::size_t I>
       struct set_tuple_type {
          static void settype(adiak_datatype_t **dtypes) {
@@ -309,18 +314,18 @@ namespace adiak
             datatype->num_subtypes = N;
             datatype->subtype = (adiak_datatype_t **) malloc(sizeof(adiak_datatype_t *) * N);
             set_tuple_type<std::tuple<Ts...>, N>::settype(datatype->subtype);
-            return datatype;            
+            return datatype;
          }
          static bool make_value(std::tuple<Ts...> &c, adiak_value_t *value, adiak_datatype_t *dtype) {
-            const size_t N = std::tuple_size<std::tuple<Ts...> >::value;         
+            const size_t N = std::tuple_size<std::tuple<Ts...> >::value;
             adiak_value_t *valarray = (adiak_value_t *) malloc(sizeof(adiak_value_t) * N);
             bool result = set_tuple_type<std::tuple<Ts...>, N>::setvalue(c, valarray, dtype);
             if (!result)
                return false;
             value->v_ptr = valarray;
-            return true;   
+            return true;
          }
-      };          
+      };
    }
 }
 

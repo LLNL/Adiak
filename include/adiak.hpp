@@ -36,7 +36,7 @@ namespace adiak
    /// \endcode
    struct version {
       std::string v;
-      version(std::string verstring) { v = verstring; }
+      version(const std::string& verstring) { v = verstring; }
       operator std::string() const { return v; }
       typedef std::string adiak_underlying_type;
    };
@@ -49,7 +49,7 @@ namespace adiak
    /// \endcode
    struct path {
       std::string v;
-      path(std::string filepath) { v = filepath; }
+      path(const std::string& filepath) { v = filepath; }
       operator std::string() const { return v; }
       typedef std::string adiak_underlying_type;
    };
@@ -62,7 +62,20 @@ namespace adiak
    /// \endcode
    struct catstring {
       std::string v;
-      catstring(std::string cs) { v = cs; }
+      catstring(const std::string& cs) { v = cs; }
+      operator std::string() const { return v; }
+      typedef std::string adiak_underlying_type;
+   };
+
+   /// \brief Convert a string into a \ref adiak_catstring
+   ///
+   /// Example:
+   /// \code
+   /// adiak::value("testcase", adiak::jsonstring("x1_large"));
+   /// \endcode
+   struct jsonstring {
+      std::string v;
+      jsonstring(const std::string& js) { v = js; }
       operator std::string() const { return v; }
       typedef std::string adiak_underlying_type;
    };

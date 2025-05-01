@@ -21,8 +21,10 @@ extern "C" {
 #define ADIAK_MINOR_VERSION 5
 #define ADIAK_POINT_VERSION 0
 
-/** \brief Determine if Adiak supports "long long" types */
+/** \brief Adiak supports "long long" types */
 #define ADIAK_HAVE_LONGLONG 1
+/** \brief Adiak supports jsonstring type */
+#define ADIAK_HAVE_JSONSTRING 1
 
 /**
  * \addtogroup UserAPI
@@ -76,6 +78,7 @@ typedef enum {
  * adiak_version    | "%v"         | ordinal
  * adiak_string     | "%s"         | ordinal
  * adiak_catstring  | "%r"         | categorical
+ * adiak_jsonstring | "%j"         | categorical
  * adiak_path       | "%p"         | categorical
  * adiak_range      | "<subtype>"  | categorical
  * adiak_set        | "[subtype]"  | categorical
@@ -155,7 +158,9 @@ typedef enum {
    /** \brief A C <tt> long long </tt> */
    adiak_longlong,
    /** \brief A C <tt> unsigned long long </tt> */
-   adiak_ulonglong
+   adiak_ulonglong,
+   /** \brief A JSON string. Passed as \c char*. */
+   adiak_jsonstring
 } adiak_type_t;
 
 typedef int adiak_category_t;
@@ -198,25 +203,26 @@ typedef struct adiak_datatype_t {
  * value. The following table describes what union value should be read for
  * each \ref adiak_type_t:
  *
- * Type            | Union value
- * ----------------|------------
- * adiak_long      | v_long
- * adiak_ulong     | v_long (cast to unsigned long)
- * adiak_int       | v_int
- * adiak_uint      | v_int (cast to unsigned int)
- * adiak_double    | v_double
- * adiak_date      | v_long (as seconds since epoch)
- * adiak_timeval   | v_ptr (cast to struct timeval*)
- * adiak_version   | v_ptr (cast to char*)
- * adiak_string    | v_ptr (cast to char*)
- * adiak_catstring | v_ptr (cast to char*)
- * adiak_path      | v_ptr (cast to char*)
- * adiak_range     | v_subval (as adiak_value_t[2]) [*]
- * adiak_set       | v_subval (as adiak_value_t array) [*]
- * adiak_list      | v_subval (as adiak_value_t array) [*]
- * adiak_tuple     | v_subval (as adiak_value_t array) [*]
- * adiak_longlong  | v_longlong
- * adiak_ulonglong | v_longlong (as unsigned long long)
+ * Type             | Union value
+ * -----------------|------------
+ * adiak_long       | v_long
+ * adiak_ulong      | v_long (cast to unsigned long)
+ * adiak_int        | v_int
+ * adiak_uint       | v_int (cast to unsigned int)
+ * adiak_double     | v_double
+ * adiak_date       | v_long (as seconds since epoch)
+ * adiak_timeval    | v_ptr (cast to struct timeval*)
+ * adiak_version    | v_ptr (cast to char*)
+ * adiak_string     | v_ptr (cast to char*)
+ * adiak_catstring  | v_ptr (cast to char*)
+ * adiak_jsonstring | v_ptr (cast to char*)
+ * adiak_path       | v_ptr (cast to char*)
+ * adiak_range      | v_subval (as adiak_value_t[2]) [*]
+ * adiak_set        | v_subval (as adiak_value_t array) [*]
+ * adiak_list       | v_subval (as adiak_value_t array) [*]
+ * adiak_tuple      | v_subval (as adiak_value_t array) [*]
+ * adiak_longlong   | v_longlong
+ * adiak_ulonglong  | v_longlong (as unsigned long long)
  *
  * [*] Reference (zero-copy) container types store the original
  * input pointer in v_ptr.
