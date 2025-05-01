@@ -1318,8 +1318,8 @@ int adiak_mpi_library_version()
       result = adksys_mpi_library_version(vendor, 80, version, 40);
    if (result == -1)
       return -1;
-   adiak_namevalue("mpi_library_vendor", adiak_general, "mpi", "%s", vendor);
-   adiak_namevalue("mpi_library_version", adiak_general, "mpi", "%v", version);
+   result = adiak_namevalue("mpi_library_vendor", adiak_general, "mpi", "%s", vendor);
+   return result == -1 ? result : adiak_namevalue("mpi_library_version", adiak_general, "mpi", "%v", version);
 #endif
    return -1;
 }
