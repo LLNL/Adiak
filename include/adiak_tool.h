@@ -13,6 +13,8 @@
 
 #include "adiak.h"
 
+#include <time.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -23,6 +25,21 @@ extern "C" {
  * \name Adiak tool API
  * \{
  */
+
+/**
+ * \brief Contains metadata for an adiak name/value pair
+ */
+typedef struct adiak_record_info_t {
+    /** \brief The adiak category, e.g. \ref adiak_general */
+    int category;
+    /** \brief An optional user-defined subcategory */
+    const char* subcategory;
+    /** \brief Timestamp when the value was last set
+     *
+     * In POSIX systems, this is a CLOCK_REALTIME timestamp.
+     */
+    struct timespec timestamp;
+} adiak_record_info_t;
 
 /**
  * \brief Callback function for processing an Adiak name/value pair
@@ -94,6 +111,16 @@ char *adiak_type_to_string(adiak_datatype_t *t, int long_form);
 int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **value, int *category, const char **subcat);
 
 /**
+ * \brief Query the currently set value and info for \a name
+ *
+ * \param[in] name Name of the name/value pair to query
+ * \param[out] t Datatype specification of the name/value pair
+ * \param[out] value Value of the name/value pair
+ * \param[out] info Metadata for the name/value pair
+ */
+int adiak_get_nameval_info(const char* name, adiak_datatype_t **t, adiak_value_t **value, adiak_record_info_t **info);
+
+/**
  * \brief Return the number of sub-values for the given container type \a t
  */
 int adiak_num_subvals(adiak_datatype_t* t);
@@ -112,7 +139,7 @@ int adiak_num_subvals(adiak_datatype_t* t);
  *
  * Returns NULL in \a subtype and in \a subvalue.v_ptr if the given
  * value is not a container type or \a elem is out-of-bounds.
- * 
+ *
  * \param[in] t The container datatype
  * \param[in] val The container value
  * \param[in] elem Index of the sub-element to return

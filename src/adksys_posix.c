@@ -3,6 +3,7 @@
 //
 // SPDX-License-Identifier: MIT
 
+#define _XOPEN_SOURCE 600
 #include <sys/times.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -43,6 +44,10 @@ int adksys_get_times(struct timeval *sys, struct timeval *cpu)
 
 int adksys_curtime(struct timeval *tm) {
    return gettimeofday(tm, NULL);
+}
+
+int adksys_clock_realtime(struct timespec *ts) {
+   return clock_gettime(CLOCK_REALTIME, ts);
 }
 
 int adksys_hostname(char *outbuffer, int buffer_size)

@@ -33,6 +33,7 @@ typedef struct record_list_t {
    adiak_datatype_t *dtype;
    struct record_list_t *list_next;
    struct record_list_t *hash_next;
+   adiak_record_info_t info;
 } record_list_t;
 
 typedef struct {
@@ -276,6 +277,24 @@ int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **va
             *cat = i->category;
          if (subcat)
             *subcat = i->subcategory;
+         return 0;
+      }
+   }
+   return -1;
+}
+
+int adiak_get_nameval_info(const char *name, adiak_datatype_t **t, adiak_value_t **value,  adiak_record_info_t **info)
+{
+   record_list_t *i;
+   adiak_common_init();
+   for (i = adiak_config->shared_record_list; i != NULL; i = i->list_next) {
+      if (strcmp(i->name, name) == 0) {
+         if (t)
+            *t = i->dtype;
+         if (value)
+            *value = i->value;
+         if (info)
+            *info = &i->info;
          return 0;
       }
    }
@@ -907,8 +926,7 @@ static void record_nameval(const char *name, int category, const char *subcatego
       addrecord = (record_list_t *) malloc(sizeof(record_list_t));
       memset(addrecord, 0, sizeof(*addrecord));
       newrecord = 1;
-   }
-   else {
+   } else {
       free_adiak_value(addrecord->dtype, addrecord->value);
       free_adiak_type(addrecord->dtype);
       free((void*) addrecord->subcategory);
@@ -919,6 +937,10 @@ static void record_nameval(const char *name, int category, const char *subcatego
    addrecord->subcategory = subcategory ? strdup(subcategory) : NULL;
    addrecord->value = value;
    addrecord->dtype = dtype;
+
+   addrecord->info.category = category;
+   addrecord->info.subcategory = addrecord->subcategory;
+   adksys_clock_realtime(&addrecord->info.timestamp);
 
    if (!newrecord)
       return;
