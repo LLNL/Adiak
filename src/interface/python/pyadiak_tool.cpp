@@ -59,7 +59,7 @@ private:
 
 py::object convert_adiak_value_to_python(adiak_value_t *val,
                                          adiak_datatype_t *type) {
-  // TODO import pyadiak module to get proper casting of data containers to
+  // TODO figure out if I need to do anything else to cast custom types to
   // py::object
   switch (type->dtype) {
   case adiak_long:
