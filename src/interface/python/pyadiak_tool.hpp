@@ -6,7 +6,7 @@
 namespace adiak {
 namespace python {
 
-void create_adiak_tool_annotation_mod(py::module_ &mod);
+void create_adiak_tool_mod(py::module_ &mod);
 
 }
 } // namespace adiak

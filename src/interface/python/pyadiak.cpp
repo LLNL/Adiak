@@ -4,13 +4,8 @@
 #include <mpi4py/mpi4py.h>
 
 #include <algorithm>
-#include <chrono>
 #include <cstdint>
 #include <set>
-#include <type_traits>
-
-namespace adiak {
-namespace python {
 
 // Bindings for MPI Comm derived from this StackOverflow post:
 // https://stackoverflow.com/a/62449190
@@ -59,109 +54,50 @@ template <> struct type_caster<mpi4py_comm> {
 } // namespace detail
 } // namespace pybind11
 
-// The 'is_templated_base_of' type trait is derived from the following
-// StackOverflow post:
-// https://stackoverflow.com/a/49163138
-template <template <typename...> class Base, typename Derived,
-          typename TCheck = void>
-struct is_templated_base_of_tester;
+namespace adiak {
+namespace python {
 
-template <template <typename...> class Base, typename Derived>
-struct is_templated_base_of_tester<
-    Base, Derived, std::enable_if_t<std::is_class<Derived>::value>> : Derived {
-  template <typename... T> static constexpr std::true_type test(Base<T...> *);
-  static constexpr std::false_type test(...);
-  using is_base = decltype(test((is_templated_base_of_tester *)nullptr));
-};
+Timepoint::Timepoint(std::chrono::system_clock::time_point time)
+    : DataContainer<std::chrono::system_clock::time_point, struct timeval *>(
+          time) {}
 
-template <template <typename...> class Base, typename Derived>
-struct is_templated_base_of_tester<
-    Base, Derived, std::enable_if_t<!std::is_class<Derived>::value>> {
-  using is_base = std::false_type;
-};
+struct timeval *Timepoint::to_adiak() const {
+  auto time_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(
+      m_v.time_since_epoch());
+  m_time_for_adiak.tv_sec = time_since_epoch.count() / 1000000;
+  m_time_for_adiak.tv_usec = time_since_epoch.count() % 1000000;
+  return &m_time_for_adiak;
+}
 
-template <template <typename...> class Base, typename Derived>
-using is_templated_base_of =
-    typename is_templated_base_of_tester<Base, Derived>::is_base;
+Date::Date(std::chrono::system_clock::time_point time)
+    : DataContainer<std::chrono::system_clock::time_point, adiak::date>(time) {}
 
-template <typename T, class adiak_type> struct DataContainer {
-  T m_v;
+adiak::date Date::to_adiak() const {
+  auto time_since_epoch = std::chrono::duration_cast<std::chrono::seconds>(
+      value.time_since_epoch());
+  return adiak::date(time_since_epoch.count());
+}
 
-  DataContainer(T val) : m_v(val) {}
+Version::Version(const std::string &ver)
+    : DataContainer<std::string, adiak::version>(ver) {}
 
-  virtual adiak_type to_adiak() const = 0;
-};
+adiak::version Version::to_adiak() const { return adiak::version(m_v); }
 
-// Python-compatible struct for storing timepoint info
-// that will be converted into 'struct timeval' for Adiak
-struct Timepoint : public DataContainer<std::chrono::system_clock::time_point,
-                                        struct timeval *> {
-  struct timeval m_time_for_adiak;
+Path::Path(const std::string &p) : DataContainer<std::string, adiak::path>(p) {}
 
-  Timepoint(std::chrono::system_clock::time_point time)
-      : DataContainer<std::chrono::system_clock::time_point, struct timeval *>(
-            time) {}
+adiak::path Path::to_adiak() const { return adiak::path(m_v); }
 
-  struct timeval *to_adiak() const final {
-    auto time_since_epoch =
-        std::chrono::duration_cast<std::chrono::microseconds>(
-            m_v.time_since_epoch());
-    m_time_for_adiak.tv_sec = time_since_epoch.count() / 1000000;
-    m_time_for_adiak.tv_usec = time_since_epoch.count() % 1000000;
-    return &m_time_for_adiak;
-  }
-};
+CatStr::CatStr(const std::string &cs)
+    : DataContainer<std::string, adiak::catstring>(cs) {}
 
-// Python-compatible struct for storing date or datetime info
-// that will be converted into 'adiak::date' for Adiak
-struct Date
-    : public DataContainer<std::chrono::system_clock::time_point, adiak::date> {
-  Date(std::chrono::system_clock::time_point time)
-      : DataContainer<std::chrono::system_clock::time_point, adiak::date>(
-            time) {}
+adiak::catstringCatStr::to_adiak() const { return adiak::catstring(m_v); }
 
-  adiak::date to_adiak() const final {
-    auto time_since_epoch = std::chrono::duration_cast<std::chrono::seconds>(
-        value.time_since_epoch());
-    return adiak::date(time_since_epoch.count());
-  }
-};
+CatStr::to_adiak() const { return adiak::catstring(m_v); }
 
-// Python-compatible struct for storing version info
-// that will be converted into 'adiak::version' for Adiak
-struct Version : public DataContainer<std::string, adiak::version> {
-  Version(const std::string &ver)
-      : DataContainer<std::string, adiak::version>(ver) {}
+JsonStr::JsonStr(const std::string &js)
+    : DataContainer<std::string, adiak::jsonstring>(js) {}
 
-  adiak::version to_adiak() const final { return adiak::version(m_v); }
-};
-
-// TODO replace use of string with std::filesystem if/when C++17 is supported
-// Python-compatible struct for storing path info
-// that will be converted into 'adiak::path' for Adiak
-struct Path : public DataContainer<std::string, adiak::path> {
-  Path(const std::string &p) : DataContainer<std::string, adiak::path>(p) {}
-
-  adiak::path to_adiak() const final { return adiak::path(m_v); }
-};
-
-// Python-compatible struct for storing categorical string info
-// that will be converted into 'adiak::catstring' for Adiak
-struct CatStr : public DataContainer<std::string, adiak::catstring> {
-  CatStr(const std::string &cs)
-      : DataContainer<std::string, adiak::catstring>(cs) {}
-
-  adiak::catstring to_adiak() const { return adiak::catstring(m_v); }
-};
-
-// Python-compatible struct for storing JSON string info
-// that will be converted into 'adiak::jsonstring' for Adiak
-struct JsonStr : public DataContainer<std::string, adiak::jsonstring> {
-  JsonStr(const std::string &js)
-      : DataContainer<std::string, adiak::jsonstring>(js) {}
-
-  adiak::jsonstring to_adiak() const { return adiak::jsonstring(m_v); }
-};
+adiak::jsonstring JsonStr::to_adiak() const { return adiak::jsonstring(m_v); }
 
 // Custom wrapper for adiak::init
 // The only difference is that it uses the behavior of the pybind11
@@ -227,17 +163,23 @@ void create_adiak_annotation_mod(py::module_ &mod) {
   // Note that we don't wrap the DataContainer base class or the 'to_adiak'
   // methods because we don't need those exposed to Python.
   py::class_<adiak::python::Timepoint>(mod, "Timepoint")
-      .def(py::init<std::chrono::system_clock::time_point>());
+      .def(py::init<std::chrono::system_clock::time_point>())
+      .def("to_python", &adiak::python::Timepoint::to_python);
   py::class_<adiak::python::Date>(mod, "Date")
-      .def(py::init<std::chrono::system_clock::time_point>());
+      .def(py::init<std::chrono::system_clock::time_point>())
+      .def("to_python", &adiak::python::Timepoint::to_python);
   py::class_<adiak::python::Version>(mod, "Version")
-      .def(py::init<const std::string &>());
+      .def(py::init<const std::string &>())
+      .def("to_python", &adiak::python::Timepoint::to_python);
   py::class_<adiak::python::Path>(mod, "Path")
-      .def(py::init<const std::string &>());
+      .def(py::init<const std::string &>())
+      .def("to_python", &adiak::python::Timepoint::to_python);
   py::class_<adiak::python::CatStr>(mod, "CatStr")
-      .def(py::init<const std::string &>());
+      .def(py::init<const std::string &>())
+      .def("to_python", &adiak::python::Timepoint::to_python);
   py::class_<adiak::python::JsonStr>(mod, "JsonStr")
-      .def(py::init<const std::string &>());
+      .def(py::init<const std::string &>())
+      .def("to_python", &adiak::python::Timepoint::to_python);
 
   // Bind 'init' and 'fini'
   mod.def("init", &adiak::python::init);
