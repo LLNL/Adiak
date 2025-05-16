@@ -1,5 +1,5 @@
-#ifndef ADIAK_INTERFACE_PYTHON_ADIAK_HPP_
-#define ADIAK_INTERFACE_PYTHON_ADIAK_HPP_
+#ifndef ADIAK_INTERFACE_PYTHON_PYADIAK_HPP_
+#define ADIAK_INTERFACE_PYTHON_PYADIAK_HPP_
 
 #include "common"
 
@@ -11,4 +11,4 @@ void create_adiak_annotation_mod(py::module_ &mod);
 }
 } // namespace adiak
 
-#endif /* ADIAK_INTERFACE_PYTHON_ADIAK_HPP_ */
+#endif /* ADIAK_INTERFACE_PYTHON_PYADIAK_HPP_ */
