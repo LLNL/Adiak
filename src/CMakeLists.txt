@@ -53,3 +53,7 @@ install(TARGETS
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 install(EXPORT adiak-targets NAMESPACE adiak:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/adiak)
+
+if (WITH_PYTHON_BINDINGS)
+  add_subdirectory(interface/python)
+endif()

@@ -57,48 +57,6 @@ template <> struct type_caster<mpi4py_comm> {
 namespace adiak {
 namespace python {
 
-Timepoint::Timepoint(std::chrono::system_clock::time_point time)
-    : DataContainer<std::chrono::system_clock::time_point, struct timeval *>(
-          time) {}
-
-struct timeval *Timepoint::to_adiak() const {
-  auto time_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(
-      m_v.time_since_epoch());
-  m_time_for_adiak.tv_sec = time_since_epoch.count() / 1000000;
-  m_time_for_adiak.tv_usec = time_since_epoch.count() % 1000000;
-  return &m_time_for_adiak;
-}
-
-Date::Date(std::chrono::system_clock::time_point time)
-    : DataContainer<std::chrono::system_clock::time_point, adiak::date>(time) {}
-
-adiak::date Date::to_adiak() const {
-  auto time_since_epoch = std::chrono::duration_cast<std::chrono::seconds>(
-      value.time_since_epoch());
-  return adiak::date(time_since_epoch.count());
-}
-
-Version::Version(const std::string &ver)
-    : DataContainer<std::string, adiak::version>(ver) {}
-
-adiak::version Version::to_adiak() const { return adiak::version(m_v); }
-
-Path::Path(const std::string &p) : DataContainer<std::string, adiak::path>(p) {}
-
-adiak::path Path::to_adiak() const { return adiak::path(m_v); }
-
-CatStr::CatStr(const std::string &cs)
-    : DataContainer<std::string, adiak::catstring>(cs) {}
-
-adiak::catstringCatStr::to_adiak() const { return adiak::catstring(m_v); }
-
-CatStr::to_adiak() const { return adiak::catstring(m_v); }
-
-JsonStr::JsonStr(const std::string &js)
-    : DataContainer<std::string, adiak::jsonstring>(js) {}
-
-adiak::jsonstring JsonStr::to_adiak() const { return adiak::jsonstring(m_v); }
-
 // Custom wrapper for adiak::init
 // The only difference is that it uses the behavior of the pybind11
 // type_caster above to decide whether to pass an MPI communicator
@@ -158,28 +116,6 @@ void create_adiak_annotation_mod(py::module_ &mod) {
     throw std::runtime_error(
         "Cannot load mpi4py within the Adiak Python bindings");
   }
-
-  // Bind the custom data containers to Python.
-  // Note that we don't wrap the DataContainer base class or the 'to_adiak'
-  // methods because we don't need those exposed to Python.
-  py::class_<adiak::python::Timepoint>(mod, "Timepoint")
-      .def(py::init<std::chrono::system_clock::time_point>())
-      .def("to_python", &adiak::python::Timepoint::to_python);
-  py::class_<adiak::python::Date>(mod, "Date")
-      .def(py::init<std::chrono::system_clock::time_point>())
-      .def("to_python", &adiak::python::Timepoint::to_python);
-  py::class_<adiak::python::Version>(mod, "Version")
-      .def(py::init<const std::string &>())
-      .def("to_python", &adiak::python::Timepoint::to_python);
-  py::class_<adiak::python::Path>(mod, "Path")
-      .def(py::init<const std::string &>())
-      .def("to_python", &adiak::python::Timepoint::to_python);
-  py::class_<adiak::python::CatStr>(mod, "CatStr")
-      .def(py::init<const std::string &>())
-      .def("to_python", &adiak::python::Timepoint::to_python);
-  py::class_<adiak::python::JsonStr>(mod, "JsonStr")
-      .def(py::init<const std::string &>())
-      .def("to_python", &adiak::python::Timepoint::to_python);
 
   // Bind 'init' and 'fini'
   mod.def("init", &adiak::python::init);

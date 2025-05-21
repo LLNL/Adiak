@@ -1,6 +1,6 @@
 #include "pyadiak_tool.hpp"
 #include "adiak_tool.h"
-#include "pyadiak.hpp"
+#include "types.hpp"
 
 #include <chrono>
 #include <set>
@@ -253,7 +253,7 @@ void create_adiak_tool_mod(py::module_ &mod) {
       .value("AdiakNumericalInterval", adiak_interval)
       .value("AdiakNumericalRational", adiak_rational)
       .export_values();
-  py::class_<PyadiakDataType>(mod, "DataType")
+  py::class_<PyadiakDataType>(mod, "AdiakDataType")
       .def(py::init<>())
       .def("get_dtype", &PyadiakDataType::get_dtype)
       .def("get_numerical", &PyadiakDataType::get_numerical)
