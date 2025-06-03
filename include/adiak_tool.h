@@ -59,6 +59,23 @@ typedef struct adiak_record_info_t {
 typedef void (*adiak_nameval_cb_t)(const char *name, int category, const char *subcategory, adiak_value_t *value, adiak_datatype_t *t, void *opaque_value);
 
 /**
+ * \brief Callback function for processing an Adiak name/value pair including metadata
+ *
+ * This callback function is called once for each queried name/value pair. It provides
+ * name, value and record metadata such as the timestamp.
+ *
+ * \param name Name of the name/value pair
+ * \param value The value of the name/value pair. Refer to \ref adiak_value_t to see which
+ *   union value to choose based on the datatype \a t.
+ * \param t The datatype specification of the name/value pair.
+ * \param info Metadata for the name/value pair
+ * \param opaque_value Optional user-defined pass-through argument
+ *
+ * \sa adiak_register_cb, adiak_list_namevals
+ */
+typedef void (*adiak_nameval_info_cb_t)(const char *name, adiak_value_t *value, adiak_datatype_t *t, adiak_record_info_t *info, void *opaque_value);
+
+/**
  * \brief Register a callback function to be invoked when a name/value pair is set
  *
  * \param[in] adiak_version Adiak API version. Currently 1.
@@ -71,6 +88,11 @@ typedef void (*adiak_nameval_cb_t)(const char *name, int category, const char *s
  * \param[in] opaque_val User-provided value passed through to the callback function.
  */
 void adiak_register_cb(int adiak_version, int category, adiak_nameval_cb_t nv, int report_on_all_ranks, void *opaque_val);
+
+/**
+ * \copydoc adiak_register_cb
+ */
+void adiak_register_cb_with_info(int adiak_version, int category, adiak_nameval_info_cb_t nv, int report_on_all_ranks, void *opaque_val);
 
 /**
  * \brief Iterate over the name/value pairs currently registered with Adiak
@@ -86,6 +108,11 @@ void adiak_register_cb(int adiak_version, int category, adiak_nameval_cb_t nv, i
  * \param[in] opaque_val User-provided value passed through to the callback function.
  */
 void adiak_list_namevals(int adiak_version, int category, adiak_nameval_cb_t nv, void *opaque_val);
+
+/**
+ * \copydoc adiak_list_namevals
+ */
+void adiak_list_namevals_with_info(int adiak_version, int category, adiak_nameval_info_cb_t nv, void *opaque_val);
 
 /**
  * \brief Return the type string descriptor for an Adiak datatype specification
@@ -118,7 +145,7 @@ int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **va
  * \param[out] value Value of the name/value pair
  * \param[out] info Metadata for the name/value pair
  */
-int adiak_get_nameval_info(const char* name, adiak_datatype_t **t, adiak_value_t **value, adiak_record_info_t **info);
+int adiak_get_nameval_with_info(const char* name, adiak_datatype_t **t, adiak_value_t **value, adiak_record_info_t **info);
 
 /**
  * \brief Return the number of sub-values for the given container type \a t

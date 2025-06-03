@@ -175,7 +175,7 @@ TEST(AdiakApplicationAPI, C_BasicTypes)
     adiak_datatype_t* subtype = nullptr;
     adiak_record_info_t* info = nullptr;
 
-    EXPECT_EQ(adiak_get_nameval_info("c:int", &dtype, &val, &info), 0);
+    EXPECT_EQ(adiak_get_nameval_with_info("c:int", &dtype, &val, &info), 0);
     EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_int);
     EXPECT_EQ(val->v_int, -42);
     EXPECT_EQ(info->category, adiak_general);
