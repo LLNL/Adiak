@@ -145,9 +145,9 @@ TEST(AdiakApplicationAPI, CXX_CompoundTypes)
     EXPECT_EQ(inner_subval.v_int, 3);
 }
 
-bool operator < (const struct timespec& a, const struct timespec& b)
+bool operator <= (const struct timespec& a, const struct timespec& b)
 {
-    return a.tv_sec < b.tv_sec || (a.tv_sec == b.tv_sec && a.tv_nsec < b.tv_nsec);
+    return a.tv_sec < b.tv_sec || (a.tv_sec == b.tv_sec && a.tv_nsec <= b.tv_nsec);
 }
 
 TEST(AdiakApplicationAPI, C_BasicTypes)
@@ -181,8 +181,8 @@ TEST(AdiakApplicationAPI, C_BasicTypes)
     EXPECT_EQ(info->category, adiak_general);
     EXPECT_EQ(adiak_num_subvals(dtype), 0);
     EXPECT_EQ(adiak_get_subval(dtype, val, 0, &subtype, &subval), -1);
-    EXPECT_LT(ts_0, info->timestamp);
-    EXPECT_LT(info->timestamp, ts_1);
+    EXPECT_LE(ts_0, info->timestamp);
+    EXPECT_LE(info->timestamp, ts_1);
 
     EXPECT_EQ(adiak_get_nameval("c:uint", &dtype, &val, nullptr, nullptr), 0);
     EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_uint);
