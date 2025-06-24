@@ -23,6 +23,8 @@ typedef struct adiak_tool_t {
    adiak_nameval_cb_t name_val_cb;
    int report_on_all_ranks;
    int category;
+   // Below fields are present with record info
+   adiak_nameval_info_cb_t nameval_info_cb;
 } adiak_tool_t;
 
 typedef struct record_list_t {
@@ -33,6 +35,7 @@ typedef struct record_list_t {
    adiak_datatype_t *dtype;
    struct record_list_t *list_next;
    struct record_list_t *hash_next;
+   adiak_record_info_t *info;
 } record_list_t;
 
 typedef struct {
@@ -79,6 +82,7 @@ static adiak_datatype_t base_path_ref = { adiak_path, adiak_categorical, 0, 0, N
 static void adiak_common_init();
 static void adiak_register(int adiak_version, int category,
                            adiak_nameval_cb_t nv,
+                           adiak_nameval_info_cb_t nvi,
                            int report_on_all_ranks, void *opaque_val);
 
 static int find_end_brace(const char *typestr, char endchar, int typestr_start, int typestr_end);
@@ -93,8 +97,8 @@ static adiak_type_t toplevel_type(const char *typestr);
 static int calc_size(adiak_datatype_t *datatype);
 static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *ptr);
 
-static void record_nameval(const char *name, int category, const char *subcategory,
-                           adiak_value_t *value, adiak_datatype_t *dtype);
+static record_list_t* record_nameval(const char *name, int category, const char *subcategory,
+                                     adiak_value_t *value, adiak_datatype_t *dtype);
 
 static int measure_walltime();
 static int measure_systime();
@@ -119,9 +123,12 @@ int adiak_raw_namevalue(const char *name, int category, const char *subcategory,
                         adiak_value_t *value, adiak_datatype_t *type)
 {
    adiak_tool_t *tool;
+   adiak_record_info_t *info_ptr = NULL;
 
-   if (category != adiak_control)
-      record_nameval(name, category, subcategory, value, type);
+   if (category != adiak_control) {
+      record_list_t* rec = record_nameval(name, category, subcategory, value, type);
+      info_ptr = rec->info;
+   }
    if (!tool_list)
       return 0;
 
@@ -132,8 +139,19 @@ int adiak_raw_namevalue(const char *name, int category, const char *subcategory,
          continue;
       if (tool->category != adiak_category_all && tool->category != category)
          continue;
-      if (tool->name_val_cb)
+      if (tool->name_val_cb) {
          tool->name_val_cb(name, category, subcategory, value, type, tool->opaque_val);
+      } else if (tool->nameval_info_cb) {
+         adiak_record_info_t info;
+         memset(&info, 0, sizeof(adiak_record_info_t));
+         if (!info_ptr) {
+            info.category = category;
+            info.subcategory = subcategory;
+            adksys_clock_realtime(&info.timestamp);
+            info_ptr = &info;
+         }
+         tool->nameval_info_cb(name, value, type, info_ptr, tool->opaque_val);
+      }
    }
    return 0;
 }
@@ -247,7 +265,13 @@ adiak_numerical_t adiak_numerical_from_type(adiak_type_t dtype)
 void adiak_register_cb(int adiak_version, int category,
                        adiak_nameval_cb_t nv, int report_on_all_ranks, void *opaque_val)
 {
-   adiak_register(adiak_version, category, nv, report_on_all_ranks, opaque_val);
+   adiak_register(adiak_version, category, nv, NULL, report_on_all_ranks, opaque_val);
+}
+
+void adiak_register_cb_with_info(int adiak_version, int category,
+                                 adiak_nameval_info_cb_t nv, int report_on_all_ranks, void *opaque_val)
+{
+   adiak_register(adiak_version, category, NULL, nv, report_on_all_ranks, opaque_val);
 }
 
 void adiak_list_namevals(int adiak_version, int category, adiak_nameval_cb_t nv, void *opaque_val)
@@ -258,6 +282,18 @@ void adiak_list_namevals(int adiak_version, int category, adiak_nameval_cb_t nv,
       if (category != adiak_category_all && i->category != category)
          continue;
       nv(i->name, i->category, i->subcategory, i->value, i->dtype, opaque_val);
+   }
+   (void) adiak_version;
+}
+
+void adiak_list_namevals_with_info(int adiak_version, int category, adiak_nameval_info_cb_t nv, void *opaque_val)
+{
+   record_list_t *i;
+   adiak_common_init();
+   for (i = adiak_config->shared_record_list; i != NULL; i = i->list_next) {
+      if (category != adiak_category_all && i->category != category)
+         continue;
+      nv(i->name, i->value, i->dtype, i->info, opaque_val);
    }
    (void) adiak_version;
 }
@@ -276,6 +312,24 @@ int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **va
             *cat = i->category;
          if (subcat)
             *subcat = i->subcategory;
+         return 0;
+      }
+   }
+   return -1;
+}
+
+int adiak_get_nameval_with_info(const char *name, adiak_datatype_t **t, adiak_value_t **value,  adiak_record_info_t **info)
+{
+   record_list_t *i;
+   adiak_common_init();
+   for (i = adiak_config->shared_record_list; i != NULL; i = i->list_next) {
+      if (strcmp(i->name, name) == 0) {
+         if (t)
+            *t = i->dtype;
+         if (value)
+            *value = i->value;
+         if (info)
+            *info = i->info;
          return 0;
       }
    }
@@ -431,6 +485,7 @@ void adiak_fini()
 
 static void adiak_register(int adiak_version, int category,
                            adiak_nameval_cb_t nv,
+                           adiak_nameval_info_cb_t nvi,
                            int report_on_all_ranks, void *opaque_val)
 {
    adiak_tool_t *newtool;
@@ -441,6 +496,7 @@ static void adiak_register(int adiak_version, int category,
    newtool->opaque_val = opaque_val;
    newtool->report_on_all_ranks = report_on_all_ranks;
    newtool->name_val_cb = nv;
+   newtool->nameval_info_cb = nvi;
    newtool->category = category;
    newtool->next = (adiak_tool_t *) *tool_list;
    newtool->prev = NULL;
@@ -888,8 +944,8 @@ static unsigned long strhash(const char *str) {
     return hash;
 }
 
-static void record_nameval(const char *name, int category, const char *subcategory,
-                           adiak_value_t *value, adiak_datatype_t *dtype)
+static record_list_t* record_nameval(const char *name, int category, const char *subcategory,
+                                     adiak_value_t *value, adiak_datatype_t *dtype)
 {
    record_list_t *addrecord = NULL, *i;
    unsigned long hashval;
@@ -907,11 +963,11 @@ static void record_nameval(const char *name, int category, const char *subcatego
       addrecord = (record_list_t *) malloc(sizeof(record_list_t));
       memset(addrecord, 0, sizeof(*addrecord));
       newrecord = 1;
-   }
-   else {
+   } else {
       free_adiak_value(addrecord->dtype, addrecord->value);
       free_adiak_type(addrecord->dtype);
       free((void*) addrecord->subcategory);
+      free((void*) addrecord->info);
       addrecord->subcategory = NULL;
    }
 
@@ -920,8 +976,16 @@ static void record_nameval(const char *name, int category, const char *subcatego
    addrecord->value = value;
    addrecord->dtype = dtype;
 
+   adiak_record_info_t* info = malloc(sizeof(adiak_record_info_t));
+   memset(info, 0, sizeof(adiak_record_info_t));
+
+   info->category = category;
+   info->subcategory = addrecord->subcategory;
+   adksys_clock_realtime(&info->timestamp);
+   addrecord->info = info;
+
    if (!newrecord)
-      return;
+      return addrecord;
 
    addrecord->name = (const char *) strdup(name);
 
@@ -932,6 +996,8 @@ static void record_nameval(const char *name, int category, const char *subcatego
 
    addrecord->hash_next = record_hash[hashval];
    record_hash[hashval] = addrecord;
+
+   return addrecord;
 }
 
 int adiak_flush(const char *location)
@@ -955,6 +1021,7 @@ int adiak_clean()
       free_adiak_value(i->dtype, i->value);
       free_adiak_type(i->dtype);
       free((void *) i->name);
+      free((void *) i->info);
       if (i->subcategory)
          free((void *) i->subcategory);
       next = i->list_next;

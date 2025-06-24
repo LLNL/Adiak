@@ -145,8 +145,15 @@ TEST(AdiakApplicationAPI, CXX_CompoundTypes)
     EXPECT_EQ(inner_subval.v_int, 3);
 }
 
+bool operator <= (const struct timespec& a, const struct timespec& b)
+{
+    return a.tv_sec < b.tv_sec || (a.tv_sec == b.tv_sec && a.tv_nsec <= b.tv_nsec);
+}
+
 TEST(AdiakApplicationAPI, C_BasicTypes)
 {
+    struct timespec ts_0, ts_1;
+    clock_gettime(CLOCK_REALTIME, &ts_0);
     EXPECT_EQ(adiak_namevalue("c:int", adiak_general, NULL, "%d", -42), 0);
     EXPECT_EQ(adiak_namevalue("c:uint", adiak_general, NULL, "%u", 42u), 0);
     EXPECT_EQ(adiak_namevalue("c:int64", adiak_general, NULL, "%lld", 9876543210ll), 0);
@@ -155,6 +162,7 @@ TEST(AdiakApplicationAPI, C_BasicTypes)
     EXPECT_EQ(adiak_namevalue("c:path", adiak_general, NULL, "%p", "/a/b/c"), 0);
     EXPECT_EQ(adiak_namevalue("c:catstring", adiak_general, NULL, "%r", "cat"), 0);
     EXPECT_EQ(adiak_namevalue("c:json", adiak_general, NULL, "%j", "{ \"json\": true }"), 0);
+    clock_gettime(CLOCK_REALTIME, &ts_1);
 
     const int test_cat = 4242;
     EXPECT_EQ(adiak_namevalue("c:new_category", test_cat, "subcat:c", "%d", 42), 0);
@@ -165,13 +173,16 @@ TEST(AdiakApplicationAPI, C_BasicTypes)
     const char* subcat = nullptr;
     adiak_value_t subval;
     adiak_datatype_t* subtype = nullptr;
+    adiak_record_info_t* info = nullptr;
 
-    EXPECT_EQ(adiak_get_nameval("c:int", &dtype, &val, &cat, &subcat), 0);
+    EXPECT_EQ(adiak_get_nameval_with_info("c:int", &dtype, &val, &info), 0);
     EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_int);
     EXPECT_EQ(val->v_int, -42);
-    EXPECT_EQ(cat, adiak_general);
+    EXPECT_EQ(info->category, adiak_general);
     EXPECT_EQ(adiak_num_subvals(dtype), 0);
     EXPECT_EQ(adiak_get_subval(dtype, val, 0, &subtype, &subval), -1);
+    EXPECT_LE(ts_0, info->timestamp);
+    EXPECT_LE(info->timestamp, ts_1);
 
     EXPECT_EQ(adiak_get_nameval("c:uint", &dtype, &val, nullptr, nullptr), 0);
     EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_uint);

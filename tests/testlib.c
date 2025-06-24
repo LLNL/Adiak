@@ -138,9 +138,10 @@ static void print_value(adiak_value_t *val, adiak_datatype_t *t)
    }
 }
 
-static void print_nameval(const char *name, int UNUSED(category), const char *UNUSED(subcategory), adiak_value_t *value, adiak_datatype_t *t, void *UNUSED(opaque_value))
+static void print_nameval(const char *name, adiak_value_t *value, adiak_datatype_t *t, adiak_record_info_t *info, void *UNUSED(opaque_value))
 {
-   printf("%s - %s: ", STR(TOOLNAME), name);
+   double timestamp = ((double) info->timestamp.tv_sec) + (info->timestamp.tv_nsec * 1e-9);
+   printf("%s - %f - %s: ", STR(TOOLNAME), timestamp, name);
    print_value(value, t);
    printf("\n");
 }
@@ -149,7 +150,7 @@ static void print_on_flush(const char *name, int UNUSED(category), const char *U
 {
    if (strcmp(name, "flush") != 0)
       return;
-   adiak_list_namevals(1, adiak_category_all, print_nameval, NULL);
+   adiak_list_namevals_with_info(1, adiak_category_all, print_nameval, NULL);
 }
 
 
@@ -159,7 +160,5 @@ static void onload()
    if (strcmp(STR(TOOLNAME), "TOOL3") == 0)
       adiak_register_cb(1, adiak_control, print_on_flush, 0, NULL);
    else
-      adiak_register_cb(1, adiak_category_all, print_nameval, 0, NULL);
+      adiak_register_cb_with_info(1, adiak_category_all, print_nameval, 0, NULL);
 }
-
-

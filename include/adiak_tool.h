@@ -13,6 +13,8 @@
 
 #include "adiak.h"
 
+#include <time.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -23,6 +25,21 @@ extern "C" {
  * \name Adiak tool API
  * \{
  */
+
+/**
+ * \brief Contains metadata for an adiak name/value pair
+ */
+typedef struct adiak_record_info_t {
+    /** \brief The adiak category, e.g. \ref adiak_general */
+    int category;
+    /** \brief An optional user-defined subcategory */
+    const char* subcategory;
+    /** \brief Timestamp when the value was last set
+     *
+     * In POSIX systems, this is a CLOCK_REALTIME timestamp.
+     */
+    struct timespec timestamp;
+} adiak_record_info_t;
 
 /**
  * \brief Callback function for processing an Adiak name/value pair
@@ -42,6 +59,23 @@ extern "C" {
 typedef void (*adiak_nameval_cb_t)(const char *name, int category, const char *subcategory, adiak_value_t *value, adiak_datatype_t *t, void *opaque_value);
 
 /**
+ * \brief Callback function for processing an Adiak name/value pair including metadata
+ *
+ * This callback function is called once for each queried name/value pair. It provides
+ * name, value and record metadata such as the timestamp.
+ *
+ * \param name Name of the name/value pair
+ * \param value The value of the name/value pair. Refer to \ref adiak_value_t to see which
+ *   union value to choose based on the datatype \a t.
+ * \param t The datatype specification of the name/value pair.
+ * \param info Metadata for the name/value pair
+ * \param opaque_value Optional user-defined pass-through argument
+ *
+ * \sa adiak_register_cb, adiak_list_namevals
+ */
+typedef void (*adiak_nameval_info_cb_t)(const char *name, adiak_value_t *value, adiak_datatype_t *t, adiak_record_info_t *info, void *opaque_value);
+
+/**
  * \brief Register a callback function to be invoked when a name/value pair is set
  *
  * \param[in] adiak_version Adiak API version. Currently 1.
@@ -54,6 +88,11 @@ typedef void (*adiak_nameval_cb_t)(const char *name, int category, const char *s
  * \param[in] opaque_val User-provided value passed through to the callback function.
  */
 void adiak_register_cb(int adiak_version, int category, adiak_nameval_cb_t nv, int report_on_all_ranks, void *opaque_val);
+
+/**
+ * \copydoc adiak_register_cb
+ */
+void adiak_register_cb_with_info(int adiak_version, int category, adiak_nameval_info_cb_t nv, int report_on_all_ranks, void *opaque_val);
 
 /**
  * \brief Iterate over the name/value pairs currently registered with Adiak
@@ -69,6 +108,11 @@ void adiak_register_cb(int adiak_version, int category, adiak_nameval_cb_t nv, i
  * \param[in] opaque_val User-provided value passed through to the callback function.
  */
 void adiak_list_namevals(int adiak_version, int category, adiak_nameval_cb_t nv, void *opaque_val);
+
+/**
+ * \copydoc adiak_list_namevals
+ */
+void adiak_list_namevals_with_info(int adiak_version, int category, adiak_nameval_info_cb_t nv, void *opaque_val);
 
 /**
  * \brief Return the type string descriptor for an Adiak datatype specification
@@ -94,6 +138,16 @@ char *adiak_type_to_string(adiak_datatype_t *t, int long_form);
 int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **value, int *category, const char **subcat);
 
 /**
+ * \brief Query the currently set value and info for \a name
+ *
+ * \param[in] name Name of the name/value pair to query
+ * \param[out] t Datatype specification of the name/value pair
+ * \param[out] value Value of the name/value pair
+ * \param[out] info Metadata for the name/value pair
+ */
+int adiak_get_nameval_with_info(const char* name, adiak_datatype_t **t, adiak_value_t **value, adiak_record_info_t **info);
+
+/**
  * \brief Return the number of sub-values for the given container type \a t
  */
 int adiak_num_subvals(adiak_datatype_t* t);
@@ -112,7 +166,7 @@ int adiak_num_subvals(adiak_datatype_t* t);
  *
  * Returns NULL in \a subtype and in \a subvalue.v_ptr if the given
  * value is not a container type or \a elem is out-of-bounds.
- * 
+ *
  * \param[in] t The container datatype
  * \param[in] val The container value
  * \param[in] elem Index of the sub-element to return
