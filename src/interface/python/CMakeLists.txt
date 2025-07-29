@@ -27,6 +27,12 @@ pybind11_add_module(__pyadiak_impl ${PYADIAK_BINDING_SOURCES})
 target_link_libraries(__pyadiak_impl PUBLIC adiak)
 target_compile_features(__pyadiak_impl PUBLIC cxx_std_11)
 target_include_directories(__pyadiak_impl PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+execute_process(
+  COMMAND python3 -c "import mpi4py, os; print(os.path.join(os.path.dirname(mpi4py.__file__), 'include'))"
+  OUTPUT_VARIABLE MPI4PY_INCLUDE_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+include_directories(${MPI4PY_INCLUDE_DIR})
 
 add_custom_target(
     pyadiak_py_source_copy ALL # Always build pycaliper_test

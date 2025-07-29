@@ -21,7 +21,7 @@ Date::Date(std::chrono::system_clock::time_point time)
 
 adiak::date Date::to_adiak() const {
   auto time_since_epoch = std::chrono::duration_cast<std::chrono::seconds>(
-      value.time_since_epoch());
+      m_v.time_since_epoch());
   return adiak::date(time_since_epoch.count());
 }
 
@@ -37,9 +37,7 @@ adiak::path Path::to_adiak() const { return adiak::path(m_v); }
 CatStr::CatStr(const std::string &cs)
     : DataContainer<std::string, adiak::catstring>(cs) {}
 
-adiak::catstringCatStr::to_adiak() const { return adiak::catstring(m_v); }
-
-CatStr::to_adiak() const { return adiak::catstring(m_v); }
+adiak::catstring CatStr::to_adiak() const { return adiak::catstring(m_v); }
 
 JsonStr::JsonStr(const std::string &js)
     : DataContainer<std::string, adiak::jsonstring>(js) {}
@@ -60,19 +58,19 @@ void create_adiak_types_mod(py::module_ &mod) {
       .def("to_python", &adiak::python::Timepoint::to_python);
   py::class_<adiak::python::Date>(mod, "Date")
       .def(py::init<std::chrono::system_clock::time_point>())
-      .def("to_python", &adiak::python::Timepoint::to_python);
+      .def("to_python", &adiak::python::Date::to_python);
   py::class_<adiak::python::Version>(mod, "Version")
       .def(py::init<const std::string &>())
-      .def("to_python", &adiak::python::Timepoint::to_python);
+      .def("to_python", &adiak::python::Version::to_python);
   py::class_<adiak::python::Path>(mod, "Path")
       .def(py::init<const std::string &>())
-      .def("to_python", &adiak::python::Timepoint::to_python);
+      .def("to_python", &adiak::python::Path::to_python);
   py::class_<adiak::python::CatStr>(mod, "CatStr")
       .def(py::init<const std::string &>())
-      .def("to_python", &adiak::python::Timepoint::to_python);
+      .def("to_python", &adiak::python::CatStr::to_python);
   py::class_<adiak::python::JsonStr>(mod, "JsonStr")
       .def(py::init<const std::string &>())
-      .def("to_python", &adiak::python::Timepoint::to_python);
+      .def("to_python", &adiak::python::JsonStr::to_python);
 }
 
 } // namespace python

@@ -63,47 +63,49 @@ py::object convert_adiak_value_to_python(adiak_value_t *val,
   // py::object
   switch (type->dtype) {
   case adiak_long:
-    return py::cast<py::int_>(val->v_long);
+    return py::cast(val->v_long);
     break;
   case adiak_ulong:
-    return py::cast<py::int_>((unsigned long)val->v_long);
+    return py::cast((unsigned long)val->v_long);
     break;
   case adiak_int:
-    return py::cast<py::int_>(val->v_int);
+    return py::cast(val->v_int);
     break;
   case adiak_uint:
-    return py::cast<py::int_>((unsigned int)val->v_int);
+    return py::cast((unsigned int)val->v_int);
     break;
   case adiak_double:
-    return py::cast<py::float_>(val->v_double);
-  case adiak_date:
+    return py::cast(val->v_double);
+  case adiak_date: {
     std::chrono::seconds chrono_seconds(val->v_long);
     return py::cast(adiak::python::Date(
         std::chrono::system_clock::time_point(chrono_seconds)));
     break;
-  case adiak_timeval:
-    uint64_t num_microseconds = val->v_ptr->tv_sec * 1000000;
-    num_microseconds += val->v_ptr->tv_usec;
+  }
+  case adiak_timeval: {
+    struct timeval* tv = static_cast<struct timeval*>(val->v_ptr);
+    uint64_t num_microseconds = tv->tv_sec * 1000000 + tv->tv_usec;
     std::chrono::microseconds chrono_usec(num_microseconds);
     return py::cast(adiak::python::Timepoint(
         std::chrono::system_clock::time_point(chrono_usec)));
     break;
+  }
   case adiak_version:
-    return py::cast(adiak::python::Version(std::string(val->v_ptr)));
+    return py::cast(adiak::python::Version(std::string(static_cast<const char*>(val->v_ptr))));
     break;
   case adiak_string:
-    return py::cast<py::str>(std::string(val->v_ptr));
+    return py::cast(std::string(static_cast<const char*>(val->v_ptr)));
     break;
   case adiak_catstring:
-    return py::cast(adiak::python::CatStr(std::string(val->v_ptr)));
+    return py::cast(adiak::python::CatStr(std::string(static_cast<const char*>(val->v_ptr))));
     break;
   case adiak_jsonstring:
-    return py::cast(adiak::python::JsonStr(std::string(val->v_ptr)));
+    return py::cast(adiak::python::JsonStr(std::string(static_cast<const char*>(val->v_ptr))));
     break;
   case adiak_path:
-    return py::cast(adiak::python::Path(std::string(val->v_ptr)));
+    return py::cast(adiak::python::Path(std::string(static_cast<const char*>(val->v_ptr))));
     break;
-  case adiak_range:
+  case adiak_range: {
     if (type->num_subtypes != 2) {
       throw std::runtime_error(
           "Mismatch in Adiak between 'range' type and number of subtypes");
@@ -111,9 +113,10 @@ py::object convert_adiak_value_to_python(adiak_value_t *val,
     std::tuple<py::object, py::object> range_tuple = std::make_tuple(
         convert_adiak_value_to_python(&(val->v_subval[0]), type->subtype[0]),
         convert_adiak_value_to_python(&(val->v_subval[1]), type->subtype[1]));
-    return py::cast<py::tuple>(range_tuple);
+    return py::cast(range_tuple);
     break;
-  case adiak_set:
+  }
+  case adiak_set: {
     if (type->num_subtypes != 1) {
       throw std::runtime_error(
           "Mismatch in Adiak between 'set' type and number of subtypes");
@@ -126,9 +129,10 @@ py::object convert_adiak_value_to_python(adiak_value_t *val,
       set_val.insert(
           convert_adiak_value_to_python(&(val->v_subval[i]), subtype));
     }
-    return py::cast<py::set>(set_val);
+    return py::cast(set_val);
     break;
-  case adiak_list:
+  }
+  case adiak_list: {
     if (type->num_subtypes != 1) {
       throw std::runtime_error(
           "Mismatch in Adiak between 'list' type and number of subtypes");
@@ -141,15 +145,16 @@ py::object convert_adiak_value_to_python(adiak_value_t *val,
       list_val.push_back(
           convert_adiak_value_to_python(&(val->v_subval[i]), subtype));
     }
-    return py::cast<py::list>(list_val);
+    return py::cast(list_val);
     break;
-  case adiak_tuple:
+  }
+  case adiak_tuple: {
     int num_subtypes = type->num_subtypes;
     int num_elems =
         type->is_reference != 0 ? type->num_ref_elements : type->num_elements;
     if (num_subtypes != num_elems) {
       throw std::runtime_error(
-          "Mismatch in Adiak between 'tuple' type and number of subtypes")
+          "Mismatch in Adiak between 'tuple' type and number of subtypes");
     }
     std::vector<py::object> list_val;
     for (int i = 0; i < num_elems; i++) {
@@ -159,11 +164,12 @@ py::object convert_adiak_value_to_python(adiak_value_t *val,
     py::tuple tup_val = py::cast(list_val);
     return tup_val;
     break;
+  }
   case adiak_longlong:
-    return py::cast<py::int_>(val->v_longlong);
+    return py::cast(val->v_longlong);
     break;
   case adiak_ulonglong:
-    return py::cast<py::int_>(val->v_ulonglong);
+    return py::cast(val->v_longlong);
     break;
   default:
     throw std::runtime_error("Invalid datatype obtained from Adiak");
@@ -262,10 +268,10 @@ void create_adiak_tool_mod(py::module_ &mod) {
            &PyadiakDataType::get_num_subtypes_in_container)
       .def("is_reference", &PyadiakDataType::is_reference)
       .def("get_subtypes", &PyadiakDataType::get_subtypes);
-  m.def("register_cb", &pyadiak_register_cb);
-  m.def("list_namevals", &pyadiak_list_namevals);
-  m.def("type_to_string", &pyadiak_type_to_string);
-  m.def("get_nameval", &pyadiak_get_nameval);
+  mod.def("register_cb", &pyadiak_register_cb);
+  mod.def("list_namevals", &pyadiak_list_namevals);
+  mod.def("type_to_string", &pyadiak_type_to_string);
+  mod.def("get_nameval", &pyadiak_get_nameval);
 }
 
 } // namespace python

@@ -2,6 +2,7 @@
 #include "adiak.hpp"
 #include <mpi.h>
 #include <mpi4py/mpi4py.h>
+#include "types.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -26,9 +27,9 @@ template <> struct type_caster<mpi4py_comm> {
   bool load(py::handle src, bool) {
     // If the comm is None, produce a mpi4py_comm object with m_comm set to
     // MPI_COMM_NULL
-    if (src == py::none()) {
+    if (src.is(py::none())) {
       value.m_comm = MPI_COMM_NULL;
-      return !PyErr_Occured();
+      return !PyErr_Occurred();
     }
     // Get the underlying PyObject pointer to the mpi4py object
     PyObject *py_capi_comm = src.ptr();
@@ -43,7 +44,7 @@ template <> struct type_caster<mpi4py_comm> {
     }
     // Tell pybind11 that the conversion to C++ was successfull so long as there
     // were no Python errors
-    return !PyErr_Occured();
+    return !PyErr_Occurred();
   }
 
   static py::handle cast(mpi4py_comm src, py::return_value_policy, py::handle) {
@@ -70,32 +71,33 @@ void init(mpi4py_comm comm) {
 }
 
 // Custom version of adiak::value for subclasses of DataContainer
-template <class T, typename = std::enable_if_t<
-                       std::is_templated_base_of<DataContainer, T>::value>>
+template <class T, typename = pybind11::detail::enable_if_t<
+                       is_templated_base_of<DataContainer, T>::value>>
 bool value(std::string name, T value, int category = adiak_general,
            std::string subcategory = "") {
   return adiak::value(name, value.to_adiak(), category, subcategory);
 }
 
-// Custom version of adiak::value for vectors of subclasses of DataContainer
-template <class T, typename = std::enable_if_t<
-                       std::is_templated_base_of<DataContainer, T>::value>>
-bool value_vec(std::string name, std::vector<T> value,
+template <class T, typename = pybind11::detail::enable_if_t<
+                       is_templated_base_of<DataContainer, T>::value>>
+bool value_vec(std::string name, const std::vector<T>& value,
                int category = adiak_general, std::string subcategory = "") {
-  std::vector<std::result_of<decltype (&T::to_adiak)()>::type> adiak_vec;
-  std::transform(value.cbegin(), value.cend(), adiak_vec.cbegin(),
-                 [](T v) { return v.to_adiak(); });
+  using adiak_type = decltype(std::declval<T>().to_adiak());
+  std::vector<adiak_type> adiak_vec;
+  std::transform(value.cbegin(), value.cend(), std::back_inserter(adiak_vec),
+                 [](const T& v) { return v.to_adiak(); });
   return adiak::value(name, adiak_vec, category, subcategory);
 }
 
 // Custom version of adiak::value for sets of subclasses of DataContainer
-template <class T, typename = std::enable_if_t<
-                       std::is_templated_base_of<DataContainer, T>::value>>
-bool value_set(std::string name, std::set<T> value,
+template <class T, typename = pybind11::detail::enable_if_t<
+                       is_templated_base_of<DataContainer, T>::value>>
+bool value_set(std::string name, const std::set<T>& value,
                int category = adiak_general, std::string subcategory = "") {
-  std::set<std::result_of<decltype (&T::to_adiak)()>::type> adiak_set;
-  std::transform(value.cbegin(), value.cend(), adiak_set.cbegin(),
-                 [](T v) { return v.to_adiak(); });
+  using adiak_type = decltype(std::declval<T>().to_adiak());
+  std::set<adiak_type> adiak_set;
+  std::transform(value.cbegin(), value.cend(), std::inserter(adiak_set, adiak_set.end()),
+                 [](const T& v) { return v.to_adiak(); });
   return adiak::value(name, adiak_set, category, subcategory);
 }
 
@@ -131,37 +133,100 @@ void create_adiak_annotation_mod(py::module_ &mod) {
   // We map all these specializations to the Python "value" function.
   // Pybind11 will do the work of selecting the correct version of this
   // function for us.
-  mod.def("value", &adiak::value<int8_t>);
-  mod.def("value", &adiak::value<uint64_t>);
-  mod.def("value", &adiak::value<double>);
-  mod.def("value", &adiak::value<std::string>);
-  mod.def("value", &adiak::python::value<adiak::python::Timepoint>);
-  mod.def("value", &adiak::python::value<adiak::python::Date>);
-  mod.def("value", &adiak::python::value<adiak::python::Version>);
-  mod.def("value", &adiak::python::value<adiak::python::Path>);
-  mod.def("value", &adiak::python::value<adiak::python::CatStr>);
-  mod.def("value", &adiak::python::value<adiak::python::JsonStr>);
-  mod.def("value", &adiak::value<std::vector<int8_t>>);
-  mod.def("value", &adiak::value<std::vector<uint64_t>>);
-  mod.def("value", &adiak::value<std::vector<double>>);
-  mod.def("value", &adiak::value<std::vector<std::string>>);
-  mod.def("value", &adiak::python::value_vec<adiak::python::Timepoint>);
-  mod.def("value", &adiak::python::value_vec<adiak::python::Date>);
-  mod.def("value", &adiak::python::value_vec<adiak::python::Version>);
-  mod.def("value", &adiak::python::value_vec<adiak::python::Path>);
-  mod.def("value", &adiak::python::value_vec<adiak::python::CatStr>);
-  mod.def("value", &adiak::python::value_vec<adiak::python::JsonStr>);
-  mod.def("value", &adiak::value<std::set<int8_t>>);
-  mod.def("value", &adiak::value<std::set<uint64_t>>);
-  mod.def("value", &adiak::value<std::set<double>>);
-  mod.def("value", &adiak::value<std::set<std::string>>);
-  mod.def("value", &adiak::python::value_set<adiak::python::Timepoint>);
-  mod.def("value", &adiak::python::value_set<adiak::python::Date>);
-  mod.def("value", &adiak::python::value_set<adiak::python::Version>);
-  mod.def("value", &adiak::python::value_set<adiak::python::Path>);
-  mod.def("value", &adiak::python::value_set<adiak::python::CatStr>);
-  mod.def("value", &adiak::python::value_set<adiak::python::JsonStr>);
+  mod.def("value", [](const std::string& name, int8_t val) {
+      return adiak::value(name, static_cast<int>(val));
+  });
+  mod.def("value", [](const std::string& name, uint64_t val) {
+      return adiak::value(name, val);
+  });
+  mod.def("value", [](const std::string& name, double val) {
+      return adiak::value(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::string& val) {
+      return adiak::value(name, val);
+  });
+  mod.def("value", [](const std::string& name, const adiak::python::Timepoint& val) {
+      return adiak::python::value(name, val);
+  });
+  mod.def("value", [](const std::string& name, const adiak::python::Date& val) {
+      return adiak::python::value(name, val);
+  });
+  mod.def("value", [](const std::string& name, const adiak::python::Version& val) {
+      return adiak::python::value(name, val);
+  });
+  mod.def("value", [](const std::string& name, const adiak::python::Path& val) {
+      return adiak::python::value(name, val);
+  });
+  mod.def("value", [](const std::string& name, const adiak::python::CatStr& val) {
+      return adiak::python::value(name, val);
+  });
+  mod.def("value", [](const std::string& name, const adiak::python::JsonStr& val) {
+      return adiak::python::value(name, val);
+  });
 
+  mod.def("value", [](const std::string& name, const std::vector<int8_t>& val) {
+      std::vector<int> converted(val.begin(), val.end());
+      return adiak::value(name, converted);
+  });
+  mod.def("value", [](const std::string& name, const std::vector<uint64_t>& val) {
+      return adiak::value(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::vector<double>& val) {
+      return adiak::value(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::vector<std::string>& val) {
+      return adiak::value(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::vector<adiak::python::Timepoint>& val) {
+      return adiak::python::value_vec(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::vector<adiak::python::Date>& val) {
+      return adiak::python::value_vec(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::vector<adiak::python::Version>& val) {
+      return adiak::python::value_vec(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::vector<adiak::python::Path>& val) {
+      return adiak::python::value_vec(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::vector<adiak::python::CatStr>& val) {
+      return adiak::python::value_vec(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::vector<adiak::python::JsonStr>& val) {
+      return adiak::python::value_vec(name, val);
+  });
+
+  mod.def("value", [](const std::string& name, const std::set<int8_t>& val) {
+      std::set<int> converted(val.begin(), val.end());
+      return adiak::value(name, converted);
+  });
+  mod.def("value", [](const std::string& name, const std::set<uint64_t>& val) {
+      return adiak::value(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::set<double>& val) {
+      return adiak::value(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::set<std::string>& val) {
+      return adiak::value(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::set<adiak::python::Timepoint>& val) {
+      return adiak::python::value_set(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::set<adiak::python::Date>& val) {
+      return adiak::python::value_set(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::set<adiak::python::Version>& val) {
+      return adiak::python::value_set(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::set<adiak::python::Path>& val) {
+      return adiak::python::value_set(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::set<adiak::python::CatStr>& val) {
+      return adiak::python::value_set(name, val);
+  });
+  mod.def("value", [](const std::string& name, const std::set<adiak::python::JsonStr>& val) {
+      return adiak::python::value_set(name, val);
+  });
   // Bind all the other Adiak functions to custom lambda functions
   // created by the GENERATE_API_CALL_* macros. These labmdas are
   // used over the plain versions of these functions to avoid any issues

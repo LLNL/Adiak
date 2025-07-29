@@ -2,11 +2,27 @@
 #define ADIAK_INTERFACE_PYTHON_TYPES_HPP_
 
 #include "common.hpp"
+#include <pybind11/pybind11.h>
 
 #include <chrono>
 #include <type_traits>
 
 namespace adiak {
+  inline bool operator<(const date& a, const date& b) {
+      return a.v < b.v;
+  }
+  inline bool operator<(const version& a, const version& b) {
+      return a.v < b.v;
+  }
+  inline bool operator<(const path& a, const path& b) {
+      return a.v < b.v;
+  }
+  inline bool operator<(const catstring& a, const catstring& b) {
+      return a.v < b.v;
+  }
+  inline bool operator<(const jsonstring& a, const jsonstring& b) {
+      return a.v < b.v;
+  }
 namespace python {
 
 // The 'is_templated_base_of' type trait is derived from the following
@@ -18,7 +34,7 @@ struct is_templated_base_of_tester;
 
 template <template <typename...> class Base, typename Derived>
 struct is_templated_base_of_tester<
-    Base, Derived, std::enable_if_t<std::is_class<Derived>::value>> : Derived {
+    Base, Derived, pybind11::detail::enable_if_t<std::is_class<Derived>::value>> : Derived {
   template <typename... T> static constexpr std::true_type test(Base<T...> *);
   static constexpr std::false_type test(...);
   using is_base = decltype(test((is_templated_base_of_tester *)nullptr));
@@ -26,7 +42,7 @@ struct is_templated_base_of_tester<
 
 template <template <typename...> class Base, typename Derived>
 struct is_templated_base_of_tester<
-    Base, Derived, std::enable_if_t<!std::is_class<Derived>::value>> {
+    Base, Derived, pybind11::detail::enable_if_t<!std::is_class<Derived>::value>> {
   using is_base = std::false_type;
 };
 
@@ -48,7 +64,7 @@ template <typename T, class adiak_type> struct DataContainer {
 // that will be converted into 'struct timeval' for Adiak
 struct Timepoint : public DataContainer<std::chrono::system_clock::time_point,
                                         struct timeval *> {
-  struct timeval m_time_for_adiak;
+  mutable struct timeval m_time_for_adiak;
 
   Timepoint(std::chrono::system_clock::time_point time);
 
@@ -96,6 +112,27 @@ struct JsonStr : public DataContainer<std::string, adiak::jsonstring> {
 
   adiak::jsonstring to_adiak() const final;
 };
+
+inline bool operator<(const Timepoint& a, const Timepoint& b) {
+    if (a.m_time_for_adiak.tv_sec != b.m_time_for_adiak.tv_sec)
+        return a.m_time_for_adiak.tv_sec < b.m_time_for_adiak.tv_sec;
+    return a.m_time_for_adiak.tv_usec < b.m_time_for_adiak.tv_usec;
+}
+inline bool operator<(const Date& a, const Date& b) {
+    return a.to_adiak().v < b.to_adiak().v;
+}
+inline bool operator<(const Version& a, const Version& b) {
+    return a.to_adiak().v < b.to_adiak().v;
+}
+inline bool operator<(const Path& a, const Path& b) {
+    return a.to_adiak().v < b.to_adiak().v;
+}
+inline bool operator<(const CatStr& a, const CatStr& b) {
+    return a.to_adiak().v < b.to_adiak().v;
+}
+inline bool operator<(const JsonStr& a, const JsonStr& b) {
+    return a.to_adiak().v < b.to_adiak().v;
+}
 
 void create_adiak_types_mod(py::module_ &mod);
 
