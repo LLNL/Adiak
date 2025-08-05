@@ -133,99 +133,97 @@ void create_adiak_annotation_mod(py::module_ &mod) {
   // We map all these specializations to the Python "value" function.
   // Pybind11 will do the work of selecting the correct version of this
   // function for us.
-  mod.def("value", [](const std::string& name, int8_t val) {
-      return adiak::value(name, static_cast<int>(val));
+  mod.def("value", [](const std::string& name, int8_t val, int category, const std::string& subcategory) {
+      return adiak::value(name, static_cast<int>(val), category, subcategory);
   });
-  mod.def("value", [](const std::string& name, uint64_t val) {
-      return adiak::value(name, val);
+  mod.def("value", [](const std::string& name, uint64_t val, int category, const std::string& subcategory) {
+      return adiak::value(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, double val) {
-      return adiak::value(name, val);
+  mod.def("value", [](const std::string& name, double val, int category, const std::string& subcategory) {
+      return adiak::value(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::string& val) {
-      return adiak::value(name, val);
+  mod.def("value", [](const std::string& name, const std::string& val, int category, const std::string& subcategory) {
+      return adiak::value(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const adiak::python::Timepoint& val) {
-      return adiak::python::value(name, val);
+  mod.def("value", [](const std::string& name, const adiak::python::Timepoint& val, int category, const std::string& subcategory) {
+      return adiak::python::value(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const adiak::python::Date& val) {
-      return adiak::python::value(name, val);
+  mod.def("value", [](const std::string& name, const adiak::python::Date& val, int category, const std::string& subcategory) {
+      return adiak::python::value(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const adiak::python::Version& val) {
-      return adiak::python::value(name, val);
+  mod.def("value", [](const std::string& name, const adiak::python::Version& val, int category, const std::string& subcategory) {
+      return adiak::python::value(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const adiak::python::Path& val) {
-      return adiak::python::value(name, val);
+  mod.def("value", [](const std::string& name, const adiak::python::Path& val, int category, const std::string& subcategory) {
+      return adiak::python::value(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const adiak::python::CatStr& val) {
-      return adiak::python::value(name, val);
+  mod.def("value", [](const std::string& name, const adiak::python::CatStr& val, int category, const std::string& subcategory) {
+      return adiak::python::value(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const adiak::python::JsonStr& val) {
-      return adiak::python::value(name, val);
+  mod.def("value", [](const std::string& name, const adiak::python::JsonStr& val, int category, const std::string& subcategory) {
+      return adiak::python::value(name, val, category, subcategory);
   });
-
-  mod.def("value", [](const std::string& name, const std::vector<int8_t>& val) {
+  mod.def("value", [](const std::string& name, const std::vector<int8_t>& val, int category, const std::string& subcategory) {
       std::vector<int> converted(val.begin(), val.end());
-      return adiak::value(name, converted);
+      return adiak::value(name, converted, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::vector<uint64_t>& val) {
-      return adiak::value(name, val);
+  mod.def("value", [](const std::string& name, const std::vector<uint64_t>& val, int category, const std::string& subcategory) {
+      return adiak::value(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::vector<double>& val) {
-      return adiak::value(name, val);
+  mod.def("value", [](const std::string& name, const std::vector<double>& val, int category, const std::string& subcategory) {
+      return adiak::value(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::vector<std::string>& val) {
-      return adiak::value(name, val);
+  mod.def("value", [](const std::string& name, const std::vector<std::string>& val, int category, const std::string& subcategory) {
+      return adiak::value(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::vector<adiak::python::Timepoint>& val) {
-      return adiak::python::value_vec(name, val);
+  mod.def("value", [](const std::string& name, const std::vector<adiak::python::Timepoint>& val, int category, const std::string& subcategory) {
+      return adiak::python::value_vec(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::vector<adiak::python::Date>& val) {
-      return adiak::python::value_vec(name, val);
+  mod.def("value", [](const std::string& name, const std::vector<adiak::python::Date>& val, int category, const std::string& subcategory) {
+      return adiak::python::value_vec(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::vector<adiak::python::Version>& val) {
-      return adiak::python::value_vec(name, val);
+  mod.def("value", [](const std::string& name, const std::vector<adiak::python::Version>& val, int category, const std::string& subcategory) {
+      return adiak::python::value_vec(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::vector<adiak::python::Path>& val) {
-      return adiak::python::value_vec(name, val);
+  mod.def("value", [](const std::string& name, const std::vector<adiak::python::Path>& val, int category, const std::string& subcategory) {
+      return adiak::python::value_vec(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::vector<adiak::python::CatStr>& val) {
-      return adiak::python::value_vec(name, val);
+  mod.def("value", [](const std::string& name, const std::vector<adiak::python::CatStr>& val, int category, const std::string& subcategory) {
+      return adiak::python::value_vec(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::vector<adiak::python::JsonStr>& val) {
-      return adiak::python::value_vec(name, val);
+  mod.def("value", [](const std::string& name, const std::vector<adiak::python::JsonStr>& val, int category, const std::string& subcategory) {
+      return adiak::python::value_vec(name, val, category, subcategory);
   });
-
-  mod.def("value", [](const std::string& name, const std::set<int8_t>& val) {
+  mod.def("value", [](const std::string& name, const std::set<int8_t>& val, int category, const std::string& subcategory) {
       std::set<int> converted(val.begin(), val.end());
-      return adiak::value(name, converted);
+      return adiak::value(name, converted, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::set<uint64_t>& val) {
-      return adiak::value(name, val);
+  mod.def("value", [](const std::string& name, const std::set<uint64_t>& val, int category, const std::string& subcategory) {
+      return adiak::value(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::set<double>& val) {
-      return adiak::value(name, val);
+  mod.def("value", [](const std::string& name, const std::set<double>& val, int category, const std::string& subcategory) {
+      return adiak::value(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::set<std::string>& val) {
-      return adiak::value(name, val);
+  mod.def("value", [](const std::string& name, const std::set<std::string>& val, int category, const std::string& subcategory) {
+      return adiak::value(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::set<adiak::python::Timepoint>& val) {
-      return adiak::python::value_set(name, val);
+  mod.def("value", [](const std::string& name, const std::set<adiak::python::Timepoint>& val, int category, const std::string& subcategory) {
+      return adiak::python::value_set(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::set<adiak::python::Date>& val) {
-      return adiak::python::value_set(name, val);
+  mod.def("value", [](const std::string& name, const std::set<adiak::python::Date>& val, int category, const std::string& subcategory) {
+      return adiak::python::value_set(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::set<adiak::python::Version>& val) {
-      return adiak::python::value_set(name, val);
+  mod.def("value", [](const std::string& name, const std::set<adiak::python::Version>& val, int category, const std::string& subcategory) {
+      return adiak::python::value_set(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::set<adiak::python::Path>& val) {
-      return adiak::python::value_set(name, val);
+  mod.def("value", [](const std::string& name, const std::set<adiak::python::Path>& val, int category, const std::string& subcategory) {
+      return adiak::python::value_set(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::set<adiak::python::CatStr>& val) {
-      return adiak::python::value_set(name, val);
+  mod.def("value", [](const std::string& name, const std::set<adiak::python::CatStr>& val, int category, const std::string& subcategory) {
+      return adiak::python::value_set(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::set<adiak::python::JsonStr>& val) {
-      return adiak::python::value_set(name, val);
+  mod.def("value", [](const std::string& name, const std::set<adiak::python::JsonStr>& val, int category, const std::string& subcategory) {
+      return adiak::python::value_set(name, val, category, subcategory);
   });
   // Bind all the other Adiak functions to custom lambda functions
   // created by the GENERATE_API_CALL_* macros. These labmdas are

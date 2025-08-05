@@ -73,8 +73,7 @@ def value(name: str, value: Any, category=Category.General, subcategory="") -> b
         raise TypeError(
             f"Invalid type ('{type(subcategory)}') for 'subcategory' parameter. Should be 'str'"
         )
-    return cpp_value(name, wrapped_value#, int(category), subcategory
-                     )
+    return cpp_value(name, wrapped_value, int(category), subcategory)
 
 
 __all__ = [
