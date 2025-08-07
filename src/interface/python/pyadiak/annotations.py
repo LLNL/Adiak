@@ -36,8 +36,13 @@ from pyadiak.__pyadiak_impl.annotations import (
 from pyadiak.__pyadiak_impl.annotations import (
     value as cpp_value,
 )
+from pyadiak.__pyadiak_impl.annotations import (
+    fini as cpp_fini,
+)
 from pyadiak.types import *
 
+def fini():
+    cpp_fini()
 
 def init(comm=None):
     try:
