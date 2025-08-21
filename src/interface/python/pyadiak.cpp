@@ -123,7 +123,7 @@ void create_adiak_annotation_mod(py::module_ &mod) {
   mod.def("init", &adiak::python::init);
   mod.def("fini", GENERATE_API_CALL_NO_ARGS(fini));
   // Python has no concept of templates, so pybind11 requires
-  // us to specify the types for all template functions. The requires us to
+  // us to specify the types for all template functions. This requires us to
   // iterate over all acceptable value types for adiak::value.
   //
   // Because we need to use Python-compatible types everywhere,
@@ -133,10 +133,10 @@ void create_adiak_annotation_mod(py::module_ &mod) {
   // We map all these specializations to the Python "value" function.
   // Pybind11 will do the work of selecting the correct version of this
   // function for us.
-  mod.def("value", [](const std::string& name, int8_t val, int category, const std::string& subcategory) {
+  mod.def("value", [](const std::string& name, int val, int category, const std::string& subcategory) {
       return adiak::value(name, static_cast<int>(val), category, subcategory);
   });
-  mod.def("value", [](const std::string& name, uint64_t val, int category, const std::string& subcategory) {
+  mod.def("value", [](const std::string& name, unsigned int val, int category, const std::string& subcategory) {
       return adiak::value(name, val, category, subcategory);
   });
   mod.def("value", [](const std::string& name, double val, int category, const std::string& subcategory) {
@@ -163,11 +163,11 @@ void create_adiak_annotation_mod(py::module_ &mod) {
   mod.def("value", [](const std::string& name, const adiak::python::JsonStr& val, int category, const std::string& subcategory) {
       return adiak::python::value(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::vector<int8_t>& val, int category, const std::string& subcategory) {
+  mod.def("value", [](const std::string& name, const std::vector<int>& val, int category, const std::string& subcategory) {
       std::vector<int> converted(val.begin(), val.end());
       return adiak::value(name, converted, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::vector<uint64_t>& val, int category, const std::string& subcategory) {
+  mod.def("value", [](const std::string& name, const std::vector<unsigned int>& val, int category, const std::string& subcategory) {
       return adiak::value(name, val, category, subcategory);
   });
   mod.def("value", [](const std::string& name, const std::vector<double>& val, int category, const std::string& subcategory) {
@@ -194,11 +194,11 @@ void create_adiak_annotation_mod(py::module_ &mod) {
   mod.def("value", [](const std::string& name, const std::vector<adiak::python::JsonStr>& val, int category, const std::string& subcategory) {
       return adiak::python::value_vec(name, val, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::set<int8_t>& val, int category, const std::string& subcategory) {
+  mod.def("value", [](const std::string& name, const std::set<int>& val, int category, const std::string& subcategory) {
       std::set<int> converted(val.begin(), val.end());
       return adiak::value(name, converted, category, subcategory);
   });
-  mod.def("value", [](const std::string& name, const std::set<uint64_t>& val, int category, const std::string& subcategory) {
+  mod.def("value", [](const std::string& name, const std::set<unsigned int>& val, int category, const std::string& subcategory) {
       return adiak::value(name, val, category, subcategory);
   });
   mod.def("value", [](const std::string& name, const std::set<double>& val, int category, const std::string& subcategory) {
