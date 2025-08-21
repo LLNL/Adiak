@@ -36,9 +36,9 @@ endif()
 
 include(${BLT_SOURCE_DIR}/SetupBLT.cmake)
 
-option(WITH_PYTHON_BINDINGS "Build/Install Python bindings for Adiak" FALSE)
+option(ENABLE_PYTHON_BINDINGS "Build/Install Python bindings for Adiak" FALSE)
 
-if (WITH_PYTHON_BINDINGS)
+if (ENABLE_PYTHON_BINDINGS)
   find_package(Python COMPONENTS Interpreter Development REQUIRED)
   find_package(pybind11 CONFIG REQUIRED)
   

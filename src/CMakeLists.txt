@@ -54,6 +54,6 @@ install(TARGETS
 
 install(EXPORT adiak-targets NAMESPACE adiak:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/adiak)
 
-if (WITH_PYTHON_BINDINGS)
+if (ENABLE_PYTHON_BINDINGS)
   add_subdirectory(interface/python)
 endif()
