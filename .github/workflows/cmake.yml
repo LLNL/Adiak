@@ -26,10 +26,22 @@ jobs:
               name: "Ubuntu Latest GCC",
               os: ubuntu-latest,
               build_type: "Release", cc: "gcc", cxx: "g++",
-              mpi_type: "mpich"
+              mpi_type: "none"
             }
           - {
               name: "Ubuntu Latest Clang",
+              os: ubuntu-latest,
+              build_type: "Release", cc: "clang", cxx: "clang++",
+              mpi_type: "none"
+            }
+          - {
+              name: "Ubuntu Latest GCC (MPI)",
+              os: ubuntu-latest,
+              build_type: "Release", cc: "gcc", cxx: "g++",
+              mpi_type: "mpich"
+            }
+          - {
+              name: "Ubuntu Latest Clang (MPI)",
               os: ubuntu-latest,
               build_type: "Release", cc: "clang", cxx: "clang++",
               mpi_type: "mpich"
@@ -38,7 +50,7 @@ jobs:
               name: "macOS Latest Clang",
               os: macos-latest,
               build_type: "Release", cc: "clang", cxx: "clang++",
-              mpi_type: "mpich"
+              mpi_type: "none"
             }
     steps:
     - name: Checkout repository and submodules
@@ -52,6 +64,7 @@ jobs:
         python-version: '3.13'
 
     - name: Install MPI
+      if: ${{ matrix.config.mpi != "none" }}
       uses: mpi4py/setup-mpi@v1.3.2
       with:
         mpi: ${{matrix.config.mpi_type}}
@@ -73,7 +86,13 @@ jobs:
       # Note the current convention is to use the -S and -B options here to specify source 
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_C_COMPILER=${{matrix.config.cc}} -DCMAKE_CXX_COMPILER=${{matrix.config.cxx}} -DENABLE_PYTHON_BINDINGS=ON -Dpybind11_DIR=$(pybind11-config --cmakedir)
+      run: |
+        EXTRA_OPTS=""
+        if [ "${{ matrix.config.mpi }}" != "none" ]; then
+          EXTRA_OPTS="-DENABLE_MPI=ON"
+        fi
+        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_C_COMPILER=${{matrix.config.cc}} -DCMAKE_CXX_COMPILER=${{matrix.config.cxx}} -DENABLE_PYTHON_BINDINGS=ON -Dpybind11_DIR=$(pybind11-config --cmakedir) \
+          $EXTRA_OPTS
 
     - name: Build
       working-directory: ${{github.workspace}}/build

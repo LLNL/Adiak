@@ -56,4 +56,7 @@ install(EXPORT adiak-targets NAMESPACE adiak:: DESTINATION ${CMAKE_INSTALL_LIBDI
 
 if (ENABLE_PYTHON_BINDINGS)
   add_subdirectory(interface/python)
+  if (MPI_FOUND)
+    find_package(MPI REQUIRED CXX)
+  endif()
 endif()

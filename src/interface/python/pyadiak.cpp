@@ -1,7 +1,9 @@
 #include "pyadiak.hpp"
 #include "adiak.hpp"
-#include <mpi.h>
-#include <mpi4py/mpi4py.h>
+#if defined(ENABLE_MPI)
+    #include <mpi.h>
+    #include <mpi4py/mpi4py.h>
+#endif
 #include "types.hpp"
 
 #include <algorithm>
@@ -13,14 +15,20 @@
 struct mpi4py_comm {
   mpi4py_comm() = default;
 
-  mpi4py_comm(MPI_Comm comm) : m_comm(comm) {}
-
-  MPI_Comm m_comm;
+  #if defined(ENABLE_MPI)
+    mpi4py_comm(MPI_Comm comm) : m_comm(comm) {}
+    MPI_Comm m_comm;
+  #else
+    // no-op placeholder so the type still compiles
+    mpi4py_comm(int /*unused*/ = 0) {}
+    std::nullptr_t m_comm = nullptr;
+  #endif
 };
 
 namespace pybind11 {
 namespace detail {
 
+#if defined(ENABLE_MPI)
 template <> struct type_caster<mpi4py_comm> {
   PYBIND11_TYPE_CASTER(mpi4py_comm, _("mpi4py_comm"));
 
@@ -51,6 +59,7 @@ template <> struct type_caster<mpi4py_comm> {
     return PyMPIComm_New(src.m_comm);
   }
 };
+#endif
 
 } // namespace detail
 } // namespace pybind11
@@ -63,11 +72,15 @@ namespace python {
 // type_caster above to decide whether to pass an MPI communicator
 // to adiak::init
 void init(mpi4py_comm comm) {
+#if defined(ENABLE_MPI)
   if (comm.m_comm == MPI_COMM_NULL) {
     adiak::init(nullptr);
   } else {
     adiak::init(&comm.m_comm);
   }
+#else
+  adiak::init(comm.m_comm);
+#endif
 }
 
 // Custom version of adiak::value for subclasses of DataContainer
@@ -114,10 +127,12 @@ bool value_set(std::string name, const std::set<T>& value,
 void create_adiak_annotation_mod(py::module_ &mod) {
   // Try to import mpi4py so that we can early abort if
   // we can't properly create bindings
+  #if defined(ENABLE_MPI)
   if (import_mpi4py() < 0) {
     throw std::runtime_error(
         "Cannot load mpi4py within the Adiak Python bindings");
   }
+  #endif
 
   // Bind 'init' and 'fini'
   mod.def("init", &adiak::python::init);
