@@ -9,6 +9,11 @@ if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR lib)
 endif()
 
+# Find Python by location
+if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.15)
+  cmake_policy(SET CMP0094 NEW)
+endif()
+
 set(BLT_EXPORT_THIRDPARTY ON CACHE BOOL "")
 
 if (DEFINED BLT_SOURCE_DIR)
@@ -30,6 +35,19 @@ else()
 endif()
 
 include(${BLT_SOURCE_DIR}/SetupBLT.cmake)
+
+option(ENABLE_PYTHON_BINDINGS "Build/Install Python bindings for Adiak" FALSE)
+
+if (ENABLE_PYTHON_BINDINGS)
+  find_package(Python COMPONENTS Interpreter Development REQUIRED)
+  find_package(pybind11 CONFIG REQUIRED)
+  
+  if (pybind11_FOUND)
+    set(ADIAK_HAVE_PYBIND11 TRUE)
+  else()
+    message(WARNING "Python bindings requested, but pybind11 not found")
+  endif()
+endif()
 
 add_subdirectory(src)
 if (ENABLE_TESTS)

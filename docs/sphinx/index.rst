@@ -33,6 +33,7 @@ by printf-inspired strings.
    ToolsUsingAdiak
    ApplicationAPI
    ToolAPI
+   PythonSupport
 
 Contributing
 ==================
