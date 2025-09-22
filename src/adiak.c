@@ -48,12 +48,7 @@ typedef struct {
    record_list_t *shared_record_list;
 } adiak_t;
 
-static adiak_t *adiak_config;
-static volatile adiak_tool_t **tool_list;
-
-static adiak_tool_t *local_tool_list;
-adiak_t adiak_public = { ADIAK_VERSION, ADIAK_VERSION, 0, 1, &local_tool_list, 0, NULL };
-
+adiak_t adiak_public = { ADIAK_VERSION, ADIAK_VERSION, 0, 1, NULL, 0, NULL };
 
 static int measure_adiak_walltime;
 static int measure_adiak_systime;
@@ -79,7 +74,7 @@ static adiak_datatype_t base_catstring_ref = { adiak_catstring, adiak_categorica
 static adiak_datatype_t base_jsonstring_ref = { adiak_jsonstring, adiak_categorical, 0, 0, NULL, 1, 0 };
 static adiak_datatype_t base_path_ref = { adiak_path, adiak_categorical, 0, 0, NULL, 1, 0 };
 
-static void adiak_common_init();
+static adiak_t* adiak_get_config();
 static void adiak_register(int adiak_version, int category,
                            adiak_nameval_cb_t nv,
                            adiak_nameval_info_cb_t nvi,
@@ -129,12 +124,11 @@ int adiak_raw_namevalue(const char *name, int category, const char *subcategory,
       record_list_t* rec = record_nameval(name, category, subcategory, value, type);
       info_ptr = rec->info;
    }
-   if (!tool_list)
-      return 0;
 
-   adiak_common_init();
+   adiak_t* adiak_config = adiak_get_config();
+   adiak_tool_t** tool_list = adiak_config->tool_list;
 
-   for (tool = (adiak_tool_t *) *tool_list; tool != NULL; tool = tool->next) {
+   for (tool = *tool_list; tool != NULL; tool = tool->next) {
       if (!tool->report_on_all_ranks && !adiak_config->reportable_rank)
          continue;
       if (tool->category != adiak_category_all && tool->category != category)
@@ -277,7 +271,7 @@ void adiak_register_cb_with_info(int adiak_version, int category,
 void adiak_list_namevals(int adiak_version, int category, adiak_nameval_cb_t nv, void *opaque_val)
 {
    record_list_t *i;
-   adiak_common_init();
+   adiak_t* adiak_config = adiak_get_config();
    for (i = adiak_config->shared_record_list; i != NULL; i = i->list_next) {
       if (category != adiak_category_all && i->category != category)
          continue;
@@ -289,7 +283,7 @@ void adiak_list_namevals(int adiak_version, int category, adiak_nameval_cb_t nv,
 void adiak_list_namevals_with_info(int adiak_version, int category, adiak_nameval_info_cb_t nv, void *opaque_val)
 {
    record_list_t *i;
-   adiak_common_init();
+   adiak_t* adiak_config = adiak_get_config();
    for (i = adiak_config->shared_record_list; i != NULL; i = i->list_next) {
       if (category != adiak_category_all && i->category != category)
          continue;
@@ -301,7 +295,7 @@ void adiak_list_namevals_with_info(int adiak_version, int category, adiak_nameva
 int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **value,  int *cat, const char **subcat)
 {
    record_list_t *i;
-   adiak_common_init();
+   adiak_t* adiak_config = adiak_get_config();
    for (i = adiak_config->shared_record_list; i != NULL; i = i->list_next) {
       if (strcmp(i->name, name) == 0) {
          if (t)
@@ -321,7 +315,7 @@ int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **va
 int adiak_get_nameval_with_info(const char *name, adiak_datatype_t **t, adiak_value_t **value,  adiak_record_info_t **info)
 {
    record_list_t *i;
-   adiak_common_init();
+   adiak_t* adiak_config = adiak_get_config();
    for (i = adiak_config->shared_record_list; i != NULL; i = i->list_next) {
       if (strcmp(i->name, name) == 0) {
          if (t)
@@ -428,19 +422,23 @@ error:
    return -1;
 }
 
-static void adiak_common_init()
+static adiak_t* adiak_get_config()
 {
-   static int initialized = 0;
-   if (initialized)
-      return;
-   initialized = 1;
+   static adiak_t* adiak_config = NULL;
+   static adiak_tool_t* local_tool_list = NULL;
+
+   if (adiak_config)
+      return adiak_config;
 
    adiak_config = (adiak_t *) adksys_get_public_adiak_symbol();
    if (!adiak_config)
       adiak_config = &adiak_public;
    if (ADIAK_VERSION < adiak_config->minimum_version)
       adiak_config->minimum_version = ADIAK_VERSION;
-   tool_list = (volatile adiak_tool_t **) adiak_config->tool_list;
+   if (!adiak_config->tool_list)
+      adiak_config->tool_list = &local_tool_list;
+
+   return adiak_config;
 }
 
 void adiak_init(void *mpi_communicator_p)
@@ -450,7 +448,7 @@ void adiak_init(void *mpi_communicator_p)
       return;
    initialized = 1;
 
-   adiak_common_init();
+   adiak_t* adiak_config = adiak_get_config();
 
 #if (USE_MPI)
    if (mpi_communicator_p && adksys_mpi_initialized()) {
@@ -489,7 +487,9 @@ static void adiak_register(int adiak_version, int category,
                            int report_on_all_ranks, void *opaque_val)
 {
    adiak_tool_t *newtool;
-   adiak_common_init();
+   adiak_t* adiak_config = adiak_get_config();
+   adiak_tool_t** tool_list = adiak_config->tool_list;
+
    newtool = (adiak_tool_t *) malloc(sizeof(adiak_tool_t));
    memset(newtool, 0, sizeof(*newtool));
    newtool->version = adiak_version;
@@ -498,11 +498,13 @@ static void adiak_register(int adiak_version, int category,
    newtool->name_val_cb = nv;
    newtool->nameval_info_cb = nvi;
    newtool->category = category;
-   newtool->next = (adiak_tool_t *) *tool_list;
+   newtool->next = *tool_list;
    newtool->prev = NULL;
+
    if (*tool_list)
       (*tool_list)->prev = newtool;
    *tool_list = newtool;
+
    if (report_on_all_ranks && !adiak_config->report_on_all_ranks)
       adiak_config->report_on_all_ranks = 1;
 }
@@ -989,7 +991,7 @@ static record_list_t* record_nameval(const char *name, int category, const char 
 
    addrecord->name = (const char *) strdup(name);
 
-   adiak_common_init();
+   adiak_t* adiak_config = adiak_get_config();
 
    addrecord->list_next = adiak_config->shared_record_list;
    adiak_config->shared_record_list = addrecord;
@@ -1013,7 +1015,7 @@ int adiak_clean()
    record_list_t *i, *next;
    int result;
 
-   adiak_common_init();
+   adiak_t* adiak_config = adiak_get_config();
 
    val.v_int = 0;
    result = adiak_raw_namevalue("clean", adiak_control, NULL, &val, &base_int);
