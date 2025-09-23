@@ -14,6 +14,8 @@
 #include "adiak_tool.h"
 #include "adksys.h"
 
+#define RECORD_HASH_SIZE 128
+
 typedef struct adiak_tool_t {
    //Below fields are present in v1
    int version;
@@ -46,9 +48,17 @@ typedef struct {
    adiak_tool_t **tool_list;
    int use_mpi;
    record_list_t *shared_record_list;
+   record_list_t *record_hash[RECORD_HASH_SIZE];
 } adiak_t;
 
-adiak_t adiak_public = { ADIAK_VERSION, ADIAK_VERSION, 0, 1, NULL, 0, NULL };
+#define ADIAK_T_VERSION 1
+
+adiak_t adiak_public = { ADIAK_T_VERSION, ADIAK_T_VERSION, 0, 1, NULL, 0, NULL, { NULL } };
+
+/* With ADIAK_T_VERSION 1 or higher the hash list is stored in the adiak_t struct.
+   We fall back to a local hash list if a lower version is found as adiak_public.
+ */
+static record_list_t* local_record_hash[RECORD_HASH_SIZE];
 
 static int measure_adiak_walltime;
 static int measure_adiak_systime;
@@ -98,9 +108,6 @@ static record_list_t* record_nameval(const char *name, int category, const char 
 static int measure_walltime();
 static int measure_systime();
 static int measure_cputime();
-
-#define RECORD_HASH_SIZE 128
-static record_list_t *record_hash[RECORD_HASH_SIZE];
 
 #define MAX_PATH_LEN 4096
 
@@ -433,8 +440,8 @@ static adiak_t* adiak_get_config()
    adiak_config = (adiak_t *) adksys_get_public_adiak_symbol();
    if (!adiak_config)
       adiak_config = &adiak_public;
-   if (ADIAK_VERSION < adiak_config->minimum_version)
-      adiak_config->minimum_version = ADIAK_VERSION;
+   if (ADIAK_T_VERSION < adiak_config->minimum_version)
+      adiak_config->minimum_version = ADIAK_T_VERSION;
    if (!adiak_config->tool_list)
       adiak_config->tool_list = &local_tool_list;
 
@@ -953,6 +960,11 @@ static record_list_t* record_nameval(const char *name, int category, const char 
    unsigned long hashval;
    int newrecord = 0;
 
+   adiak_t* adiak_config = adiak_get_config();
+   record_list_t** record_hash = local_record_hash;
+   if (adiak_config->minimum_version >= 1)
+      record_hash = adiak_config->record_hash;
+
    hashval = strhash(name) % RECORD_HASH_SIZE;
    for (i = record_hash[hashval]; i != NULL; i = i->hash_next) {
       if (strcmp(i->name, name) == 0) {
@@ -991,8 +1003,6 @@ static record_list_t* record_nameval(const char *name, int category, const char 
 
    addrecord->name = (const char *) strdup(name);
 
-   adiak_t* adiak_config = adiak_get_config();
-
    addrecord->list_next = adiak_config->shared_record_list;
    adiak_config->shared_record_list = addrecord;
 
@@ -1029,8 +1039,15 @@ int adiak_clean()
       next = i->list_next;
       free(i);
    }
-   memset(record_hash, 0, sizeof(record_hash));
+
+   record_list_t** record_hash = local_record_hash;
+   if (adiak_config->minimum_version >= 1)
+      record_hash = adiak_config->record_hash;
+
+   memset(record_hash, 0, sizeof(local_record_hash));
+
    adiak_config->shared_record_list = NULL;
+
    return result;
 }
 
