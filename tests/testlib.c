@@ -98,12 +98,13 @@ static void print_value(adiak_value_t *val, adiak_datatype_t *t)
       }
       case adiak_set: {
          printf("[");
-         for (int i = 0; i < adiak_num_subvals(t); i++) {
+         int num_elements = adiak_num_subvals(t);
+         for (int i = 0; i < num_elements; i++) {
             adiak_value_t subval;
             adiak_datatype_t* subtype;
             adiak_get_subval(t, val, i, &subtype, &subval);
             print_value(&subval, subtype);
-            if (i+1 != t->num_elements)
+            if (i+1 != num_elements)
                printf(", ");
          }
          printf("]");
@@ -111,12 +112,13 @@ static void print_value(adiak_value_t *val, adiak_datatype_t *t)
       }
       case adiak_list: {
          printf("{");
-         for (int i = 0; i < adiak_num_subvals(t); i++) {
+         int num_elements = adiak_num_subvals(t);
+         for (int i = 0; i < num_elements; i++) {
             adiak_value_t subval;
             adiak_datatype_t* subtype;
             adiak_get_subval(t, val, i, &subtype, &subval);
             print_value(&subval, subtype);
-            if (i+1 != t->num_elements)
+            if (i+1 != num_elements)
                printf(", ");
          }
          printf("}");
@@ -124,12 +126,13 @@ static void print_value(adiak_value_t *val, adiak_datatype_t *t)
       }
       case adiak_tuple: {
          printf("(");
-         for (int i = 0; i < adiak_num_subvals(t); i++) {
+         int num_elements = adiak_num_subvals(t);
+         for (int i = 0; i < num_elements; i++) {
             adiak_value_t subval;
             adiak_datatype_t* subtype;
             adiak_get_subval(t, val, i, &subtype, &subval);
             print_value(&subval, subtype);
-            if (i+1 != t->num_elements)
+            if (i+1 != num_elements)
                printf(", ");
          }
          printf(")");
