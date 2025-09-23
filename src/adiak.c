@@ -109,7 +109,7 @@ static int measure_walltime();
 static int measure_systime();
 static int measure_cputime();
 
-static unsigned long strhash(const char*);
+static size_t strhash_djb2(const char*);
 static record_list_t* find_record_by_name(const char* str);
 
 #define MAX_PATH_LEN 4096
@@ -942,8 +942,8 @@ static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_s
    return NULL;
 }
 
-static unsigned long strhash(const char *str) {
-    unsigned long hash = 5381;
+static size_t strhash_djb2(const char *str) {
+    size_t hash = 5381;
     int c;
     while ((c = *str++))
         hash = ((hash << 5) + hash) + c;
@@ -961,7 +961,7 @@ static record_list_t* find_record_by_name(const char* name)
    adiak_t* adiak_config = adiak_get_config();
    record_list_t** record_hash = get_record_hash_list(adiak_config);
 
-   unsigned long hashval = strhash(name) % RECORD_HASH_SIZE;
+   size_t hashval = strhash_djb2(name) % RECORD_HASH_SIZE;
    for (rec = record_hash[hashval]; rec != NULL; rec = rec->hash_next) {
       if (strcmp(rec->name, name) == 0)
          break;
@@ -975,12 +975,12 @@ static record_list_t* record_nameval(const char *name, int category, const char 
 {
    record_list_t *addrecord = NULL, *i;
    int newrecord = 0;
-   unsigned long hashval = 0;
+   size_t hashval = 0;
 
    adiak_t* adiak_config = adiak_get_config();
    record_list_t** record_hash = get_record_hash_list(adiak_config);
 
-   hashval = strhash(name) % RECORD_HASH_SIZE;
+   hashval = strhash_djb2(name) % RECORD_HASH_SIZE;
    for (i = record_hash[hashval]; i != NULL; i = i->hash_next) {
       if (strcmp(i->name, name) == 0) {
          addrecord = i;
