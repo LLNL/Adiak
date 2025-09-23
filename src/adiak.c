@@ -109,6 +109,9 @@ static int measure_walltime();
 static int measure_systime();
 static int measure_cputime();
 
+static unsigned long strhash(const char*);
+static record_list_t* find_record_by_name(const char* str);
+
 #define MAX_PATH_LEN 4096
 
 adiak_datatype_t *adiak_new_datatype(const char *typestr, ...)
@@ -301,38 +304,32 @@ void adiak_list_namevals_with_info(int adiak_version, int category, adiak_nameva
 
 int adiak_get_nameval(const char *name, adiak_datatype_t **t, adiak_value_t **value,  int *cat, const char **subcat)
 {
-   record_list_t *i;
-   adiak_t* adiak_config = adiak_get_config();
-   for (i = adiak_config->shared_record_list; i != NULL; i = i->list_next) {
-      if (strcmp(i->name, name) == 0) {
-         if (t)
-            *t = i->dtype;
-         if (value)
-            *value = i->value;
-         if (cat)
-            *cat = i->category;
-         if (subcat)
-            *subcat = i->subcategory;
-         return 0;
-      }
+   record_list_t *i = find_record_by_name(name);
+   if (i != NULL) {
+      if (t)
+         *t = i->dtype;
+      if (value)
+         *value = i->value;
+      if (cat)
+         *cat = i->category;
+      if (subcat)
+         *subcat = i->subcategory;
+      return 0;
    }
    return -1;
 }
 
 int adiak_get_nameval_with_info(const char *name, adiak_datatype_t **t, adiak_value_t **value,  adiak_record_info_t **info)
 {
-   record_list_t *i;
-   adiak_t* adiak_config = adiak_get_config();
-   for (i = adiak_config->shared_record_list; i != NULL; i = i->list_next) {
-      if (strcmp(i->name, name) == 0) {
-         if (t)
-            *t = i->dtype;
-         if (value)
-            *value = i->value;
-         if (info)
-            *info = i->info;
-         return 0;
-      }
+   record_list_t* i = find_record_by_name(name);
+   if (i != NULL) {
+      if (t)
+         *t = i->dtype;
+      if (value)
+         *value = i->value;
+      if (info)
+         *info = i->info;
+      return 0;
    }
    return -1;
 }
@@ -953,17 +950,35 @@ static unsigned long strhash(const char *str) {
     return hash;
 }
 
+static record_list_t** get_record_hash_list(adiak_t* adiak_config)
+{
+   return adiak_config->minimum_version >= 1 ? adiak_config->record_hash : local_record_hash;
+}
+
+static record_list_t* find_record_by_name(const char* name)
+{
+   record_list_t* rec = NULL;
+   adiak_t* adiak_config = adiak_get_config();
+   record_list_t** record_hash = get_record_hash_list(adiak_config);
+
+   unsigned long hashval = strhash(name) % RECORD_HASH_SIZE;
+   for (rec = record_hash[hashval]; rec != NULL; rec = rec->hash_next) {
+      if (strcmp(rec->name, name) == 0)
+         break;
+   }
+
+   return rec;
+}
+
 static record_list_t* record_nameval(const char *name, int category, const char *subcategory,
                                      adiak_value_t *value, adiak_datatype_t *dtype)
 {
    record_list_t *addrecord = NULL, *i;
-   unsigned long hashval;
    int newrecord = 0;
+   unsigned long hashval = 0;
 
    adiak_t* adiak_config = adiak_get_config();
-   record_list_t** record_hash = local_record_hash;
-   if (adiak_config->minimum_version >= 1)
-      record_hash = adiak_config->record_hash;
+   record_list_t** record_hash = get_record_hash_list(adiak_config);
 
    hashval = strhash(name) % RECORD_HASH_SIZE;
    for (i = record_hash[hashval]; i != NULL; i = i->hash_next) {

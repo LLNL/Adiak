@@ -217,6 +217,8 @@ TEST(AdiakApplicationAPI, C_BasicTypes)
     EXPECT_EQ(val->v_int, 42);
     EXPECT_EQ(cat, test_cat);
     EXPECT_STREQ(subcat, "subcat:c");
+
+    EXPECT_EQ(adiak_get_nameval_with_info("blagarbl", &dtype, &val, &info), -1);
 }
 
 TEST(AdiakApplicationAPI, C_CompoundTypes)
