@@ -156,6 +156,10 @@ static void print_on_flush(const char *name, int UNUSED(category), const char *U
    adiak_list_namevals_with_info(1, adiak_category_all, print_nameval, NULL);
 }
 
+void print_all_adiak_vars()
+{
+   adiak_list_namevals_with_info(1, adiak_category_all, print_nameval, NULL);
+}
 
 static void onload() __attribute__((constructor));
 static void onload()
