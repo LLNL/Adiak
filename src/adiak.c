@@ -1304,6 +1304,7 @@ int adiak_hostlist()
    int num_hosts = 0, result = -1;
 
 #if defined(USE_MPI)
+   adiak_t* adiak_config = adiak_get_config();
    char *name_buffer = NULL;
    if (adiak_config->use_mpi)
       result = adksys_hostlist(&hostlist_array, &num_hosts, &name_buffer, adiak_config->report_on_all_ranks);
@@ -1323,6 +1324,7 @@ int adiak_num_hosts()
    int num_hosts = 0, result = -1;
 
 #if defined(USE_MPI)
+   adiak_t* adiak_config = adiak_get_config();
    char *name_buffer = NULL;
    if (adiak_config->use_mpi)
       result = adksys_hostlist(&hostlist_array, &num_hosts, &name_buffer, adiak_config->report_on_all_ranks);
@@ -1341,6 +1343,7 @@ int adiak_job_size()
    int size = 1;
 
 #if defined(USE_MPI)
+   adiak_t* adiak_config = adiak_get_config();
    int result = -1;
    if (adiak_config->use_mpi) {
       result = adksys_jobsize(&size);
@@ -1400,6 +1403,7 @@ int adiak_mpi_version()
 #if defined(USE_MPI)
    char buf[16];
    int result = -1;
+   adiak_t* adiak_config = adiak_get_config();
    if (adiak_config->use_mpi)
       result = adksys_mpi_version(buf, 16);
    if (result == -1)
@@ -1414,6 +1418,7 @@ int adiak_mpi_library()
 #if defined(USE_MPI)
    char buf[2048];
    int result = -1;
+   adiak_t* adiak_config = adiak_get_config();
    if (adiak_config->use_mpi)
       result = adksys_mpi_library(buf, 2048);
    if (result == -1)
@@ -1429,6 +1434,7 @@ int adiak_mpi_library_version()
    char vendor[80];
    char version[40];
    int result = -1;
+   adiak_t* adiak_config = adiak_get_config();
    if (adiak_config->use_mpi)
       result = adksys_mpi_library_version(vendor, 80, version, 40);
    if (result == -1)
