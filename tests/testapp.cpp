@@ -115,6 +115,14 @@ void dowork(struct timeval
    if (!result) printf("return: %d\n\n", result);
 }
 
+/* Somehow the testlib constructor doesn't work in the C++ app
+   so we just call the print function directly.
+ */
+extern "C"
+{
+void print_all_adiak_vars();
+}
+
 int main(
 #if defined(USE_MPI)
   int argc, char *argv[]
@@ -137,6 +145,7 @@ int main(
 #endif
 
    dowork(start);
+   print_all_adiak_vars();
 
    adiak::fini();
    adiak::clean();
