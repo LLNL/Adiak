@@ -58,6 +58,13 @@ if (ENABLE_DOCS)
   add_subdirectory(docs)
 endif()
 
+option(ENABLE_MPI "Enable MPI support" FALSE)
+
+if(ENABLE_MPI)
+  add_definitions(-DENABLE_MPI)
+  find_package(MPI REQUIRED)
+endif()
+
 include(CMakePackageConfigHelpers)
 
 # Configure adiak-config-version.cmake
