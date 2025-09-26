@@ -138,8 +138,28 @@ void create_adiak_annotation_mod(py::module_ &mod) {
   }
   #endif
 
-  // Bind 'init' and 'fini'
-  mod.def("init", &adiak::python::init);
+#if defined(ENABLE_MPI)
+  // Robust overload that accepts mpi4py.MPI.Comm (or None) without needing a type_caster
+  mod.def("init", [](py::object comm_obj) {
+  if (comm_obj.is_none()) {
+    adiak::init(nullptr);
+    return;
+  }
+  // Validate it is an mpi4py.MPI.Comm and extract the MPI_Comm
+  PyObject* obj = comm_obj.ptr();
+  if (!PyObject_TypeCheck(obj, &PyMPIComm_Type)) {
+    throw py::type_error("adiak.init expects mpi4py.MPI.Comm or None");
+  }
+  MPI_Comm comm = *PyMPIComm_Get(obj);
+  adiak::init(&comm);
+});
+#else
+  // Non-MPI build: accept anything and ignore (acts like None)
+  mod.def("init", [](py::object) {
+    adiak::init(nullptr);
+  });
+#endif
+
   mod.def("fini", GENERATE_API_CALL_NO_ARGS(fini));
   // Python has no concept of templates, so pybind11 requires
   // us to specify the types for all template functions. This requires us to
