@@ -9,6 +9,9 @@
 #include <algorithm>
 #include <cstdint>
 #include <set>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 // Bindings for MPI Comm derived from this StackOverflow post:
 // https://stackoverflow.com/a/62449190
@@ -83,31 +86,32 @@ void init(mpi4py_comm comm) {
 #endif
 }
 
-// Custom version of adiak::value for subclasses of DataContainer
-template <class T, typename = pybind11::detail::enable_if_t<
-                       is_templated_base_of<DataContainer, T>::value>>
-bool value(std::string name, T value, int category = adiak_general,
+// Custom version of adiak::value for types that provide .to_adiak()
+// Use detection instead of inheritance to improve portability across compilers.
+template <class T, class U = decltype(std::declval<const T&>().to_adiak())>
+bool value(std::string name, const T& value, int category = adiak_general,
            std::string subcategory = "") {
+  (void)sizeof(U); // participates in overload resolution only if to_adiak() is valid
   return adiak::value(name, value.to_adiak(), category, subcategory);
 }
 
-template <class T, typename = pybind11::detail::enable_if_t<
-                       is_templated_base_of<DataContainer, T>::value>>
+template <class T, class U = decltype(std::declval<const T&>().to_adiak())>
 bool value_vec(std::string name, const std::vector<T>& value,
                int category = adiak_general, std::string subcategory = "") {
-  using adiak_type = decltype(std::declval<T>().to_adiak());
+  (void)sizeof(U);
+  using adiak_type = decltype(std::declval<const T&>().to_adiak());
   std::vector<adiak_type> adiak_vec;
   std::transform(value.cbegin(), value.cend(), std::back_inserter(adiak_vec),
                  [](const T& v) { return v.to_adiak(); });
   return adiak::value(name, adiak_vec, category, subcategory);
 }
 
-// Custom version of adiak::value for sets of subclasses of DataContainer
-template <class T, typename = pybind11::detail::enable_if_t<
-                       is_templated_base_of<DataContainer, T>::value>>
+// Custom version of adiak::value for sets of types that provide .to_adiak()
+template <class T, class U = decltype(std::declval<const T&>().to_adiak())>
 bool value_set(std::string name, const std::set<T>& value,
                int category = adiak_general, std::string subcategory = "") {
-  using adiak_type = decltype(std::declval<T>().to_adiak());
+  (void)sizeof(U);
+  using adiak_type = decltype(std::declval<const T&>().to_adiak());
   std::set<adiak_type> adiak_set;
   std::transform(value.cbegin(), value.cend(), std::inserter(adiak_set, adiak_set.end()),
                  [](const T& v) { return v.to_adiak(); });
