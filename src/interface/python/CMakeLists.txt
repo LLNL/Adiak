@@ -57,3 +57,12 @@ install(
     LIBRARY DESTINATION
         ${PYADIAK_SITEARCH}
 )
+
+# Put the compiled extension inside the pyadiak package in the build tree
+set(_py_pkg_dir "${CMAKE_BINARY_DIR}/src/interface/python/pyadiak")
+
+set_target_properties(__pyadiak_impl PROPERTIES
+  LIBRARY_OUTPUT_DIRECTORY  "${_py_pkg_dir}"   # where the .so (MODULE/LIBRARY) goes
+  RUNTIME_OUTPUT_DIRECTORY  "${_py_pkg_dir}"
+  ARCHIVE_OUTPUT_DIRECTORY  "${_py_pkg_dir}"
+)
