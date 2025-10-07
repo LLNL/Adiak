@@ -25,6 +25,8 @@ extern "C" {
 #define ADIAK_HAVE_LONGLONG 1
 /** \brief Adiak supports jsonstring type */
 #define ADIAK_HAVE_JSONSTRING 1
+/** \brief Adiak supports timestamp values in record info */
+#define ADIAK_HAVE_TIMESTAMPS 1
 
 /**
  * \addtogroup UserAPI

@@ -96,7 +96,7 @@ jobs:
         if [ "${{ matrix.config.mpi_type }}" != "none" ]; then
           EXTRA_OPTS="-DENABLE_MPI=ON"
         fi
-        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_C_COMPILER=${{matrix.config.cc}} -DCMAKE_CXX_COMPILER=${{matrix.config.cxx}} -DENABLE_PYTHON_BINDINGS=ON -Dpybind11_DIR=$(pybind11-config --cmakedir) \
+        cmake $GITHUB_WORKSPACE -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_C_COMPILER=${{matrix.config.cc}} -DCMAKE_CXX_COMPILER=${{matrix.config.cxx}} -DENABLE_PYTHON_BINDINGS=ON -Dpybind11_DIR=$(pybind11-config --cmakedir) \
           $EXTRA_OPTS
 
     - name: Build
