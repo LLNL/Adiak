@@ -165,26 +165,49 @@ when given specific STL containers as value, e.g. ``std::tuple`` for tuples or
 For detailed information on how to create each compound type, refer to the
 :cpp:enum:`adiak_type_t` documentation.
 
+Scalar size specifiers
+................................
+
+Adiak internally stores scalar values as 32-bit integer, 64-bit integer, or
+64-bit floating point values. Adiak automatically converts smaller integers
+(such as ``short``) to ``int``, and ``float`` to ``double``. However, when types
+other than (unsigned) ``int`` or ``double`` are used in compound types, you must
+use a length specifier in the :cpp:func:`adiak_namevalue` type string argument
+to indicate the exact input type, e.g. `"%f32"` for ``float`` or `"%i16"`
+for ``signed short``. The available type specifiers are "%i8", "%i16", "%i32",
+"%u8", "%u16", "%u32", "%f32", and "%f64". For 64-bit integers, use "%lld" or
+"%llu". Examples:
+
+.. code-block:: c
+
+   const unsigned char bytes[4] = { 32, 33, 34, 35 };
+   const signed short smallints[4] = { -1024, 0, 1, 512 };
+   const float floats[3] = { 0.42, 42.0, 42.42 };
+
+   adiak_namevalue("bytes", adiak_general, NULL, "{%u8}", bytes, 4);
+   adiak_namevalue("smallints", adiak_general, NULL, "[%i16]", smallints, 4);
+   adiak_namevalue("floats", adiak_general, NULL, "{%f32}", floats, 3);
+
 .. _reference_values:
 
 Reference values
 ................................
 
 Optionally, values can be stored as references, where Adiak does not copy the data
-but only keeps a pointer to it. 
-Reference entries are available for string types and compound types (lists, sets, 
-etc.). Scalar types (int, double, etc.) cannot be stored as references. 
+but only keeps a pointer to it.
+Reference entries are available for string types and compound types (lists, sets,
+etc.). Scalar types (int, double, etc.) cannot be stored as references.
 
 Any objects stored as references must be retained in memory by the application
 throughout the lifetime of the program or until :cpp:func:`adiak_clean` is called.
 
 Currently, reference values must be created through the C API. To do so,
-place a ``&`` in front of the type specifier in :cpp:func:`adiak_namevalue`, 
+place a ``&`` in front of the type specifier in :cpp:func:`adiak_namevalue`,
 e.g. ``&{%d}`` for a list of integers or ``&%s`` for a string. For compound
 types, the ``&`` can be applied to an inner type to create a shallow copy, e.g.
 ``{&%s}`` for a shallow-copy list of zero-copy strings. Examples:
 
-.. code-block:: c 
+.. code-block:: c
 
    static const int array[9] = { -1, 2, -3, 4, 5, 4, 3, 2, 1 };
    static const char* string_a = "A long string";

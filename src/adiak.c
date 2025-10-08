@@ -9,6 +9,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include "adiak.h"
 #include "adiak_tool.h"
@@ -64,25 +65,30 @@ static int measure_adiak_walltime;
 static int measure_adiak_systime;
 static int measure_adiak_cputime;
 
-static adiak_datatype_t base_long = { adiak_long, adiak_rational, 0, 0, NULL, 0, 0 };
-static adiak_datatype_t base_ulong = { adiak_ulong, adiak_rational, 0, 0, NULL, 0, 0 };
-static adiak_datatype_t base_longlong = { adiak_longlong, adiak_rational, 0, 0, NULL, 0, 0 };
-static adiak_datatype_t base_ulonglong = { adiak_ulonglong, adiak_rational, 0, 0, NULL, 0, 0 };
-static adiak_datatype_t base_int = { adiak_int, adiak_rational, 0, 0, NULL, 0, 0 };
-static adiak_datatype_t base_uint = { adiak_uint, adiak_rational, 0, 0, NULL, 0, 0 };
-static adiak_datatype_t base_double = { adiak_double, adiak_rational, 0, 0, NULL, 0, 0 };
-static adiak_datatype_t base_date = { adiak_date, adiak_interval, 0, 0, NULL, 0, 0 };
-static adiak_datatype_t base_timeval = { adiak_timeval, adiak_interval, 0, 0, NULL, 0, 0 };
-static adiak_datatype_t base_version = { adiak_version, adiak_ordinal, 0, 0, NULL, 0, 0 };
-static adiak_datatype_t base_string = { adiak_string, adiak_ordinal, 0, 0, NULL, 0, 0 };
-static adiak_datatype_t base_catstring = { adiak_catstring, adiak_categorical, 0, 0, NULL, 0, 0 };
-static adiak_datatype_t base_jsonstring = { adiak_jsonstring, adiak_categorical, 0, 0, NULL, 0, 0 };
-static adiak_datatype_t base_path = { adiak_path, adiak_categorical, 0, 0, NULL, 0, 0 };
-static adiak_datatype_t base_version_ref = { adiak_version, adiak_ordinal, 0, 0, NULL, 1, 0 };
-static adiak_datatype_t base_string_ref = { adiak_string, adiak_ordinal, 0, 0, NULL, 1, 0 };
-static adiak_datatype_t base_catstring_ref = { adiak_catstring, adiak_categorical, 0, 0, NULL, 1, 0 };
-static adiak_datatype_t base_jsonstring_ref = { adiak_jsonstring, adiak_categorical, 0, 0, NULL, 1, 0 };
-static adiak_datatype_t base_path_ref = { adiak_path, adiak_categorical, 0, 0, NULL, 1, 0 };
+static adiak_datatype_t base_long = { adiak_long, adiak_rational, 0, 0, NULL, 0, 0, sizeof(long) };
+static adiak_datatype_t base_ulong = { adiak_ulong, adiak_rational, 0, 0, NULL, 0, 0, sizeof(unsigned long) };
+static adiak_datatype_t base_longlong = { adiak_longlong, adiak_rational, 0, 0, NULL, 0, 0, sizeof(long long) };
+static adiak_datatype_t base_ulonglong = { adiak_ulonglong, adiak_rational, 0, 0, NULL, 0, 0, sizeof(unsigned long long) };
+static adiak_datatype_t base_int = { adiak_int, adiak_rational, 0, 0, NULL, 0, 0, sizeof(int) };
+static adiak_datatype_t base_i8 = { adiak_int, adiak_rational, 0, 0, NULL, 0, 0, 1 };
+static adiak_datatype_t base_i16 = { adiak_int, adiak_rational, 0, 0, NULL, 0, 0, 2 };
+static adiak_datatype_t base_u8 = { adiak_uint, adiak_rational, 0, 0, NULL, 0, 0, 1 };
+static adiak_datatype_t base_u16 = { adiak_uint, adiak_rational, 0, 0, NULL, 0, 0, 2 };
+static adiak_datatype_t base_uint = { adiak_uint, adiak_rational, 0, 0, NULL, 0, 0, sizeof(unsigned int) };
+static adiak_datatype_t base_double = { adiak_double, adiak_rational, 0, 0, NULL, 0, 0, sizeof(double) };
+static adiak_datatype_t base_float = { adiak_double, adiak_rational, 0, 0, NULL, 0, 0, sizeof(float) };
+static adiak_datatype_t base_date = { adiak_date, adiak_interval, 0, 0, NULL, 0, 0, sizeof(long) };
+static adiak_datatype_t base_timeval = { adiak_timeval, adiak_interval, 0, 0, NULL, 0, 0, sizeof(struct timeval*) };
+static adiak_datatype_t base_version = { adiak_version, adiak_ordinal, 0, 0, NULL, 0, 0, sizeof(char*) };
+static adiak_datatype_t base_string = { adiak_string, adiak_ordinal, 0, 0, NULL, 0, 0, sizeof(char*) };
+static adiak_datatype_t base_catstring = { adiak_catstring, adiak_categorical, 0, 0, NULL, 0, 0, sizeof(char*) };
+static adiak_datatype_t base_jsonstring = { adiak_jsonstring, adiak_categorical, 0, 0, NULL, 0, 0, sizeof(char*) };
+static adiak_datatype_t base_path = { adiak_path, adiak_categorical, 0, 0, NULL, 0, 0, sizeof(char*) };
+static adiak_datatype_t base_version_ref = { adiak_version, adiak_ordinal, 0, 0, NULL, 1, 0, sizeof(char*) };
+static adiak_datatype_t base_string_ref = { adiak_string, adiak_ordinal, 0, 0, NULL, 1, 0, sizeof(char*) };
+static adiak_datatype_t base_catstring_ref = { adiak_catstring, adiak_categorical, 0, 0, NULL, 1, 0, sizeof(char*) };
+static adiak_datatype_t base_jsonstring_ref = { adiak_jsonstring, adiak_categorical, 0, 0, NULL, 1, 0, sizeof(char*) };
+static adiak_datatype_t base_path_ref = { adiak_path, adiak_categorical, 0, 0, NULL, 1, 0, sizeof(char*) };
 
 static adiak_t* adiak_get_config();
 static void adiak_register(int adiak_version, int category,
@@ -91,6 +97,7 @@ static void adiak_register(int adiak_version, int category,
                            int report_on_all_ranks, void *opaque_val);
 
 static int find_end_brace(const char *typestr, char endchar, int typestr_start, int typestr_end);
+static int parse_scalar_len_spec(const char* typestr, int *pos);
 static adiak_datatype_t *parse_typestr(const char *typestr, va_list *ap);
 static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_start, int typestr_end,
                                               int is_reference, va_list *ap, int *new_typestr_start);
@@ -397,10 +404,22 @@ int adiak_get_subval(adiak_datatype_t* t, adiak_value_t* val, int elem, adiak_da
          break;
       case adiak_int:
       case adiak_uint:
-         (*subval).v_int = *((int *) ptr);
+         switch ((*subtype)->num_bytes) {
+         case 1:
+            (*subval).v_int = *((int8_t *) ptr);
+            break;
+         case 2:
+            (*subval).v_int = *((int16_t *) ptr);
+            break;
+         default:
+            (*subval).v_int = *((int *) ptr);
+         }
          break;
       case adiak_double:
-         (*subval).v_double = *((double *) ptr);
+         if ((*subtype)->num_bytes == 4)
+            (*subval).v_double = *((float *) ptr);
+         else
+            (*subval).v_double = *((double *) ptr);
          break;
       case adiak_timeval:
       case adiak_version:
@@ -543,6 +562,7 @@ static adiak_datatype_t *parse_typestr(const char *typestr, va_list *ap)
 
 static adiak_type_t toplevel_type(const char *typestr) {
    const char *cur = typestr;
+   int pos = 0;
    if (!cur)
       return adiak_type_unset;
    while (isspace(*cur) || *cur == ',' || *cur == '&')
@@ -561,7 +581,8 @@ static adiak_type_t toplevel_type(const char *typestr) {
             }
             return adiak_type_unset;
          case 'd': return adiak_int;
-         case 'u': return adiak_uint;
+         case 'i': return parse_scalar_len_spec(cur, &pos) == 8 ? adiak_longlong : adiak_int;
+         case 'u': return parse_scalar_len_spec(cur, &pos) == 8 ? adiak_ulonglong : adiak_uint;
          case 'f': return adiak_double;
          case 'D': return adiak_date;
          case 't': return adiak_timeval;
@@ -709,12 +730,10 @@ static int calc_size(adiak_datatype_t* datatype)
          return sizeof(long);
       case adiak_longlong:
       case adiak_ulonglong:
-         return sizeof(long long);
       case adiak_int:
       case adiak_uint:
-         return sizeof(int);
       case adiak_double:
-         return sizeof(double);
+         return (int) datatype->num_bytes;
       case adiak_timeval:
          return sizeof(struct timeval *);
       case adiak_version:
@@ -756,11 +775,23 @@ static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *p
          return sizeof(long long);
       case adiak_int:
       case adiak_uint:
-         target->v_int = *((int *) ptr);
-         return sizeof(int);
+         switch (datatype->num_bytes) {
+            case 1:
+               target->v_int = *((int8_t *) ptr);
+               break;
+            case 2:
+               target->v_int = *((int16_t *) ptr);
+               break;
+            default:
+               target->v_int = *((int *) ptr);
+         }
+         return datatype->num_bytes;
       case adiak_double:
-         target->v_double= *((double *) ptr);
-         return sizeof(double);
+         if (datatype->num_bytes == 4)
+            target->v_double = *((float *) ptr);
+         else
+            target->v_double = *((double *) ptr);
+         return datatype->num_bytes;
       case adiak_timeval: {
          struct timeval* v = (struct timeval*) ptr;
          if (!datatype->is_reference) {
@@ -802,6 +833,25 @@ static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *p
          return bytes_read;
    }
    return -1;
+}
+
+static int parse_scalar_len_spec(const char* typestr, int *pos)
+{
+   if (typestr[(*pos)+1] == '8') {
+      *pos += 1;
+      return 1;
+   } else if (typestr[(*pos)+1] == '1' && typestr[(*pos)+2] == '6') {
+      *pos += 2;
+      return 2;
+   } else if (typestr[(*pos)+1] == '3' && typestr[(*pos)+2] == '2') {
+      *pos += 2;
+      return 4;
+   } else if (typestr[(*pos)+1] == '6' && typestr[(*pos)+2] == '4') {
+      *pos += 2;
+      return 8;
+   } else if (typestr[(*pos)+1] >= '0' && typestr[(*pos)+1] <= '9')
+      return -1;
+   return 0;
 }
 
 static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_start, int typestr_end, int is_reference,
@@ -900,10 +950,57 @@ static adiak_datatype_t *parse_typestr_helper(const char *typestr, int typestr_s
             t = is_long ? (is_longlong ? &base_longlong  : &base_long)  : &base_int;
             break;
          case 'u':
-            t = is_long ? (is_longlong ? &base_ulonglong : &base_ulong) : &base_uint;
+            switch (parse_scalar_len_spec(typestr, &cur)) {
+            case 0:
+               t = is_long ? (is_longlong ? &base_ulonglong : &base_ulong) : &base_uint;
+               break;
+            case 1:
+               t = &base_u8;
+               break;
+            case 2:
+               t = &base_u16;
+               break;
+            case 4:
+               t = &base_uint;
+               break;
+            case 8:
+               t = &base_ulonglong;
+               break;
+            default:
+               goto error;
+            }
+            break;
+         case 'i':
+            switch (parse_scalar_len_spec(typestr, &cur)) {
+            case 0:
+            case 4:
+               t = &base_int;
+               break;
+            case 1:
+               t = &base_i8;
+               break;
+            case 2:
+               t = &base_i16;
+               break;
+            case 8:
+               t = &base_longlong;
+               break;
+            default:
+               goto error;
+            }
             break;
          case 'f':
-            t = &base_double;
+            switch (parse_scalar_len_spec(typestr, &cur)) {
+            case 0:
+            case 8:
+               t = &base_double;
+               break;
+            case 4:
+               t = &base_float;
+               break;
+            default:
+               goto error;
+            }
             break;
          case 'D':
             t = &base_date;

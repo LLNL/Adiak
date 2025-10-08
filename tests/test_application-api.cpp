@@ -3,6 +3,7 @@
 #include "adiak.hpp"
 #include "adiak_tool.h"
 
+#include <cstdint>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -225,14 +226,23 @@ TEST(AdiakApplicationAPI, C_CompoundTypes)
 {
     const double v_range[] = { -1.0, 1.0 };
     const int v_ints[] = { 1, 2, 3 };
-    const struct tuple_t { const char* str; long long i; } v_tuples[3] = {
-        { "one", 1ll }, { "two", 2ll }, { "three", 3ll }
+    const unsigned char v_u8s[] = { 3, 4, 5, 6 };
+    const int16_t v_i16s[] = { 256, 512, -1024, 42 };
+    const float v_f32s[] = { 1.5, 2.5, 3.5, 4.5, 5.5 };
+
+    const struct tuple_t { const char* str; long long i; } v_tuples[4] = {
+        { "one", 1ll }, { "two", 2ll }, { "three", 3ll }, { "four", 4ll }
     };
 
     EXPECT_EQ(adiak_namevalue("c:range:double", adiak_general, NULL, "<%f>", v_range), 0);
-    EXPECT_EQ(adiak_namevalue("c:tuple", adiak_general, NULL, "(%s,%lld)", v_tuples, 2), 0);
+    EXPECT_EQ(adiak_namevalue("c:range:f64", adiak_general, NULL, "<%f64>", v_range), 0);
+    EXPECT_EQ(adiak_namevalue("c:tuple", adiak_general, NULL, "(%s,%lld,%f32)", v_tuples, 2), 0);
     EXPECT_EQ(adiak_namevalue("c:vec:int", adiak_general, NULL, "{%d}", v_ints, 3), 0);
-    EXPECT_EQ(adiak_namevalue("c:vec:tpl", adiak_general, NULL, "{(%s,%lld)}", v_tuples, 3, 2), 0);
+    EXPECT_EQ(adiak_namevalue("c:vec:i32", adiak_general, NULL, "{%i32}", v_ints, 3), 0);
+    EXPECT_EQ(adiak_namevalue("c:vec:tpl", adiak_general, NULL, "{(%s,%lld,%f32)}", v_tuples, 4, 2), 0);
+    EXPECT_EQ(adiak_namevalue("c:vec:u8", adiak_general, NULL, "{%u8}", v_u8s, 4), 0);
+    EXPECT_EQ(adiak_namevalue("c:vec:i16", adiak_general, NULL, "{%i16}", v_i16s, 4), 0);
+    EXPECT_EQ(adiak_namevalue("c:vec:f32", adiak_general, NULL, "{%f32}", v_f32s, 5), 0);
 
     adiak_datatype_t* dtype = nullptr;
     adiak_value_t* val = nullptr;
@@ -242,6 +252,17 @@ TEST(AdiakApplicationAPI, C_CompoundTypes)
     adiak_datatype_t* subtype = nullptr;
 
     EXPECT_EQ(adiak_get_nameval("c:range:double", &dtype, &val, &cat, &subcat), 0);
+    EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_range);
+    EXPECT_EQ(cat, adiak_general);
+    EXPECT_EQ(adiak_num_subvals(dtype), 2);
+    EXPECT_EQ(adiak_get_subval(dtype, val, 0, &subtype, &subval), 0);
+    EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_double);
+    EXPECT_EQ(subval.v_double, -1.0);
+    EXPECT_EQ(adiak_get_subval(dtype, val, 1, &subtype, &subval), 0);
+    EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_double);
+    EXPECT_EQ(subval.v_double, 1.0);
+
+    EXPECT_EQ(adiak_get_nameval("c:range:f64", &dtype, &val, &cat, &subcat), 0);
     EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_range);
     EXPECT_EQ(cat, adiak_general);
     EXPECT_EQ(adiak_num_subvals(dtype), 2);
@@ -263,10 +284,21 @@ TEST(AdiakApplicationAPI, C_CompoundTypes)
     EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_int);
     EXPECT_EQ(subval.v_int, 3);
 
-    EXPECT_EQ(adiak_get_nameval("c:vec:tpl", &dtype, &val, &cat, &subcat), 0);
+    EXPECT_EQ(adiak_get_nameval("c:vec:i32", &dtype, &val, &cat, &subcat), 0);
     EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_list);
     EXPECT_EQ(cat, adiak_general);
     EXPECT_EQ(adiak_num_subvals(dtype), 3);
+    EXPECT_EQ(adiak_get_subval(dtype, val, 0, &subtype, &subval), 0);
+    EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_int);
+    EXPECT_EQ(subval.v_int, 1);
+    EXPECT_EQ(adiak_get_subval(dtype, val, 2, &subtype, &subval), 0);
+    EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_int);
+    EXPECT_EQ(subval.v_int, 3);
+
+    EXPECT_EQ(adiak_get_nameval("c:vec:tpl", &dtype, &val, &cat, &subcat), 0);
+    EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_list);
+    EXPECT_EQ(cat, adiak_general);
+    EXPECT_EQ(adiak_num_subvals(dtype), 4);
     EXPECT_EQ(adiak_get_subval(dtype, val, 2, &subtype, &subval), 0);
     adiak_datatype_t *inner_subtype;
     adiak_value_t inner_subval;
@@ -275,6 +307,39 @@ TEST(AdiakApplicationAPI, C_CompoundTypes)
     EXPECT_EQ(adiak_get_subval(subtype, &subval, 1, &inner_subtype, &inner_subval), 0);
     EXPECT_EQ(inner_subtype->dtype, adiak_type_t::adiak_longlong);
     EXPECT_EQ(inner_subval.v_longlong, 3ll);
+
+    EXPECT_EQ(adiak_get_nameval("c:vec:u8", &dtype, &val, &cat, &subcat), 0);
+    EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_list);
+    EXPECT_EQ(cat, adiak_general);
+    EXPECT_EQ(adiak_num_subvals(dtype), 4);
+    EXPECT_EQ(adiak_get_subval(dtype, val, 0, &subtype, &subval), 0);
+    EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_uint);
+    EXPECT_EQ(subval.v_int, 3);
+    EXPECT_EQ(adiak_get_subval(dtype, val, 2, &subtype, &subval), 0);
+    EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_uint);
+    EXPECT_EQ(subval.v_int, 5);
+
+    EXPECT_EQ(adiak_get_nameval("c:vec:i16", &dtype, &val, &cat, &subcat), 0);
+    EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_list);
+    EXPECT_EQ(cat, adiak_general);
+    EXPECT_EQ(adiak_num_subvals(dtype), 4);
+    EXPECT_EQ(adiak_get_subval(dtype, val, 0, &subtype, &subval), 0);
+    EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_int);
+    EXPECT_EQ(subval.v_int, 256);
+    EXPECT_EQ(adiak_get_subval(dtype, val, 2, &subtype, &subval), 0);
+    EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_int);
+    EXPECT_EQ(subval.v_int, -1024);
+
+    EXPECT_EQ(adiak_get_nameval("c:vec:f32", &dtype, &val, &cat, &subcat), 0);
+    EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_list);
+    EXPECT_EQ(cat, adiak_general);
+    EXPECT_EQ(adiak_num_subvals(dtype), 5);
+    EXPECT_EQ(adiak_get_subval(dtype, val, 0, &subtype, &subval), 0);
+    EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_double);
+    EXPECT_FLOAT_EQ(subval.v_double, 1.5);
+    EXPECT_EQ(adiak_get_subval(dtype, val, 2, &subtype, &subval), 0);
+    EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_double);
+    EXPECT_FLOAT_EQ(subval.v_double, 3.5);
 }
 
 
@@ -282,6 +347,9 @@ static const int s_array[9] = { -1, 2, -3, 4, 5, 4, 3, 2, 1 };
 
 static const char* s_string_a = "Static string A";
 static const char* s_string_b = "Static string B";
+
+static const int64_t s_i64_array[4] = { -9876543210ll, 9876543210ll, 0ll, 424242424242ll };
+static const int16_t s_i16_array[4] = { -1024, 1, 2, 512 };
 
 /* Structs/tuples are super iffy!
  * There is no reliable way to determine their actual memory layout in adiak.
@@ -299,6 +367,10 @@ TEST(AdiakApplicationAPI, C_ZeroCopyTypes)
 {
     /* zero-copy list of ints */
     EXPECT_EQ(adiak_namevalue("cz:ref:vec:int", adiak_general, NULL, "&{%d}", s_array, 9), 0);
+    /* zero-copy list of i64s */
+    EXPECT_EQ(adiak_namevalue("cz:ref:vec:i64", adiak_general, NULL, "&{%i64}", s_i64_array, 4), 0);
+    /* zero-copy list of i16s */
+    EXPECT_EQ(adiak_namevalue("cz:ref:vec:i16", adiak_general, NULL, "&{%i16}", s_i16_array, 4), 0);
     /* a single zero-copy string */
     EXPECT_EQ(adiak_namevalue("cz:ref:string", adiak_general, NULL, "&%s", s_string_a), 0);
     /* set of zero-copy strings (shallow-copies the list but not the strings)*/
@@ -333,6 +405,30 @@ TEST(AdiakApplicationAPI, C_ZeroCopyTypes)
     EXPECT_EQ(adiak_get_subval(dtype, val, 2, &subtype, &subval), 0);
     EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_int);
     EXPECT_EQ(subval.v_int, -3);
+
+    EXPECT_EQ(adiak_get_nameval("cz:ref:vec:i64", &dtype, &val, &cat, &subcat), 0);
+    EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_list);
+    EXPECT_EQ(dtype->is_reference, 1);
+    EXPECT_EQ(cat, adiak_general);
+    EXPECT_EQ(adiak_num_subvals(dtype), 4);
+    EXPECT_EQ(adiak_get_subval(dtype, val, 0, &subtype, &subval), 0);
+    EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_longlong);
+    EXPECT_EQ(subval.v_longlong, -9876543210);
+    EXPECT_EQ(adiak_get_subval(dtype, val, 3, &subtype, &subval), 0);
+    EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_longlong);
+    EXPECT_EQ(subval.v_longlong, 424242424242ll);
+
+    EXPECT_EQ(adiak_get_nameval("cz:ref:vec:i16", &dtype, &val, &cat, &subcat), 0);
+    EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_list);
+    EXPECT_EQ(dtype->is_reference, 1);
+    EXPECT_EQ(cat, adiak_general);
+    EXPECT_EQ(adiak_num_subvals(dtype), 4);
+    EXPECT_EQ(adiak_get_subval(dtype, val, 0, &subtype, &subval), 0);
+    EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_int);
+    EXPECT_EQ(subval.v_int, -1024);
+    EXPECT_EQ(adiak_get_subval(dtype, val, 3, &subtype, &subval), 0);
+    EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_int);
+    EXPECT_EQ(subval.v_int, 512);
 
     EXPECT_EQ(adiak_get_nameval("cz:ref:string", &dtype, &val, nullptr, nullptr), 0);
     EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_string);
