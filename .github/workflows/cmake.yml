@@ -65,7 +65,7 @@ jobs:
 
     - name: Install MPI
       if: ${{ matrix.config.mpi_type != 'none' }}
-      uses: mpi4py/setup-mpi@v1.3.2
+      uses: mpi4py/setup-mpi@v1.3.5
       with:
         mpi: ${{matrix.config.mpi_type}}
           
