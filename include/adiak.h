@@ -68,11 +68,17 @@ typedef enum {
  * that must be passed as the \a typestr argument in \ref adiak_namevalue for
  * values of the corresponding type.
  *
+ * For integer and floating point scalar values, an optional size specifier
+ * can be added in the typestring to specify the exact input type (8, 16,
+ * 32, or 64 bit). The available specifiers are i8, i16, i32, i64, u8, u16,
+ * u32, u64, f32, and f64. For example, use "%f32" for 32-bit float values,
+ * "%i16" for signed short (16-bit) integers, etc.
+ *
  * Type             | Typestring   | Value category
  * -----------------|--------------|---------------
  * adiak_long       | "%ld"        | rational
  * adiak_ulong      | "%lu"        | rational
- * adiak_int        | "%d"         | rational
+ * adiak_int        | "%d", "%i"   | rational
  * adiak_uint       | "%u"         | rational
  * adiak_double     | "%f"         | rational
  * adiak_date       | "%D"         | interval
@@ -196,6 +202,8 @@ typedef struct adiak_datatype_t {
    int is_reference;
    /** \brief Number of sub-elements for reference container values */
    int num_ref_elements;
+   /** \brief Size in bytes of the original input data (currently only for base types) */
+   size_t num_bytes;
 } adiak_datatype_t;
 
 /** \brief Adiak value union
@@ -240,7 +248,7 @@ typedef union adiak_value_t {
    long long v_longlong;
 } adiak_value_t;
 
-static const adiak_datatype_t adiak_unset_datatype = { adiak_type_unset, adiak_numerical_unset, 0, 0, NULL, 0, 0 };
+static const adiak_datatype_t adiak_unset_datatype = { adiak_type_unset, adiak_numerical_unset, 0, 0, NULL, 0, 0, 0 };
 
 /**
  * \}
@@ -285,15 +293,21 @@ void adiak_fini();
  * from the string specifiers shown in \ref adiak_type_t. The varargs contain the value
  * and, if needed, any additional parameters for the type (e.g., list length).
  *
+ * When scalar values other than (unsigned) \c int, \c long, or \c double are used in
+ * compound types, use a length specifier to indicate the exact type in \a typestr,
+ * e.g. "%f32" for 32-bit \c float or "%i16" for \c short.
+ *
  * Examples:
  *
  * \code
  * adiak_namevalue("numrecords", adiak_general, NULL, "%d", 10);
- *
  * adiak_namevalue("buildcompiler", adiak_general, "build data", "%v", "gcc@4.7.3");
  *
  * double gridvalues[] = { 5.4, 18.1, 24.0, 92.8 };
  * adiak_namevalue("gridvals", adiak_general, NULL, "[%f]", gridvalues, 4);
+ *
+ * unsigned char bytes[] = { 32, 33, 34, 35 };
+ * adiak_namevalue("bytes", adiak_general, NULL, "{%u8}", bytes, 4);
  *
  * struct { int pos; const char *val; } letters[3] = { {1, "a"}, {2, "b"}, {3, "c"} };
  * adiak_namevalue("alphabet", adiak_general, NULL, "[(%d, %s)]", letters, 3, 2);

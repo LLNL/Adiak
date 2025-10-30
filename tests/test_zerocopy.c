@@ -14,6 +14,10 @@ static const int array[9] = { -1, 2, -3, 4, 5, 4, 3, 2, 1 };
 static const char* string_a = "One";
 static const char* string_b = "Two";
 
+static float floaties[4] = { 1.5, 2.5, 3.5, 4.5 };
+
+static unsigned char itsybitsyints[4] = { 2, 3, 4, 5 };
+
 /* Structs/tuples are super iffy!
  * There is no reliable way to determine their actual memory layout in adiak.
  * Using two 64-bit elements here which has a decent chance of working.
@@ -32,6 +36,14 @@ void dowork()
 
     /* zero-copy list of ints */
    result = adiak_namevalue("array_zerocopy", adiak_general, NULL, "&{%d}", array, 9);
+   if (result != 0) printf("return: %d\n\n", result);
+
+    /* zero-copy list of u8s */
+   result = adiak_namevalue("itsybitsyints_zerocopy", adiak_general, NULL, "&{%u8}", itsybitsyints, 4);
+   if (result != 0) printf("return: %d\n\n", result);
+
+    /* zero-copy list of floats */
+   result = adiak_namevalue("floaties_zerocopy", adiak_general, NULL, "&{%f32}", floaties, 4);
    if (result != 0) printf("return: %d\n\n", result);
 
    /* a single zero-copy string */

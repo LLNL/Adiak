@@ -15,6 +15,8 @@ void dowork(struct timeval start)
    struct timeval end;
 
    double gridarray[4] = { 4.5, 1.18, 0.24, 8.92 };
+   float floaties[4] = { 1.5, 2.5, 3.5, 4.5 };
+   unsigned char itsybitsyints[4] = { 2, 3, 4, 5 };
 
    result = adiak_namevalue("compiler", adiak_general, NULL, "%s", "gcc@8.1.0");
    if (result != 0) printf("return: %d\n\n", result);
@@ -26,6 +28,12 @@ void dowork(struct timeval start)
    if (result != 0) printf("return: %d\n\n", result);
 
    result = adiak_namevalue("countdown", adiak_general, NULL, "%lld", 9876543210);
+   if (result != 0) printf("return: %d\n\n", result);
+
+   result = adiak_namevalue("floaties", adiak_general, NULL, "[%f32]", floaties, 4);
+   if (result != 0) printf("return: %d\n\n", result);
+
+   result = adiak_namevalue("itsybitsyints", adiak_general, NULL, "[%u8]", itsybitsyints, 4);
    if (result != 0) printf("return: %d\n\n", result);
 
    result = adiak_walltime();
