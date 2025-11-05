@@ -3,7 +3,7 @@ project (Adiak
          LANGUAGES CXX C
          VERSION 0.4.1)
 
-set(BLT_CXX_STD "c++11" CACHE STRING "Version of C++ standard")
+set(BLT_CXX_STD "c++14" CACHE STRING "Version of C++ standard")
 
 if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR lib)
