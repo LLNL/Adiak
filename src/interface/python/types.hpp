@@ -54,6 +54,7 @@ template <typename T, class adiak_type> struct DataContainer {
   T m_v;
 
   DataContainer(T val) : m_v(val) {}
+  virtual ~DataContainer() {}
 
   virtual T to_python() const { return m_v; }
 
