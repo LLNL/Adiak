@@ -793,10 +793,11 @@ static int copy_value(adiak_value_t *target, adiak_datatype_t *datatype, void *p
             target->v_double = *((double *) ptr);
          return datatype->num_bytes;
       case adiak_timeval: {
-         struct timeval* v = (struct timeval*) ptr;
+         struct timeval* v = (struct timeval*) *((void**) ptr);
          if (!datatype->is_reference) {
-             v = (struct timeval *) malloc(sizeof(struct timeval));
-            *v = *(struct timeval *) ptr;
+            struct timeval* tmp = malloc(sizeof(struct timeval));
+            memcpy(tmp, v, sizeof(struct timeval));
+            v = tmp;
          }
          target->v_ptr = v;
          return sizeof(struct timeval *);
