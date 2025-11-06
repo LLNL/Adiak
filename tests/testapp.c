@@ -49,10 +49,9 @@ void dowork(struct timeval start)
    if (result != 0) printf("return %d\n\n", result);
 
    gettimeofday(&end, NULL);
-   struct timeval *timerange[2];
-   timerange[0] = &start;
-   timerange[1] = &end;
-   result = adiak_namevalue("computetime", adiak_performance, NULL, "<%t>", &timerange);
+   struct timeval *timerange[2] = { &start, &end };
+   result = adiak_namevalue("endtime", adiak_general, NULL, "%t", timerange[1]);
+   result = adiak_namevalue("computetime", adiak_performance, NULL, "<%t>", timerange);
 
    result = adiak_flush("stdout");
    if (result != 0) printf("return: %d\n\n", result);
