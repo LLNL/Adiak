@@ -163,6 +163,7 @@ TEST(AdiakApplicationAPI, C_BasicTypes)
     EXPECT_EQ(adiak_namevalue("c:path", adiak_general, NULL, "%p", "/a/b/c"), 0);
     EXPECT_EQ(adiak_namevalue("c:catstring", adiak_general, NULL, "%r", "cat"), 0);
     EXPECT_EQ(adiak_namevalue("c:json", adiak_general, NULL, "%j", "{ \"json\": true }"), 0);
+    EXPECT_EQ(adiak_namevalue("c:timeval", adiak_general, NULL, "%t", &ts_0), 0);
     clock_gettime(CLOCK_REALTIME, &ts_1);
 
     const int test_cat = 4242;
@@ -219,6 +220,10 @@ TEST(AdiakApplicationAPI, C_BasicTypes)
     EXPECT_EQ(cat, test_cat);
     EXPECT_STREQ(subcat, "subcat:c");
 
+    EXPECT_EQ(adiak_get_nameval("c:timeval", &dtype, &val, &cat, &subcat), 0);
+    EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_timeval);
+    EXPECT_EQ(memcmp(val->v_ptr, &ts_0, sizeof(struct timespec)), 0);
+
     EXPECT_EQ(adiak_get_nameval_with_info("blagarbl", &dtype, &val, &info), -1);
 }
 
@@ -229,20 +234,28 @@ TEST(AdiakApplicationAPI, C_CompoundTypes)
     const unsigned char v_u8s[] = { 3, 4, 5, 6 };
     const int16_t v_i16s[] = { 256, 512, -1024, 42 };
     const float v_f32s[] = { 1.5, 2.5, 3.5, 4.5, 5.5 };
+    const char* v_strings[] = { "Hello", "Adiak", "!" };
 
     const struct tuple_t { const char* str; long long i; } v_tuples[4] = {
         { "one", 1ll }, { "two", 2ll }, { "three", 3ll }, { "four", 4ll }
     };
 
+    struct timespec ts_0, ts_1;
+
+    clock_gettime(CLOCK_REALTIME, &ts_0);
     EXPECT_EQ(adiak_namevalue("c:range:double", adiak_general, NULL, "<%f>", v_range), 0);
     EXPECT_EQ(adiak_namevalue("c:range:f64", adiak_general, NULL, "<%f64>", v_range), 0);
-    EXPECT_EQ(adiak_namevalue("c:tuple", adiak_general, NULL, "(%s,%lld,%f32)", v_tuples, 2), 0);
+    EXPECT_EQ(adiak_namevalue("c:tuple", adiak_general, NULL, "(%s,%lld)", v_tuples, 2), 0);
     EXPECT_EQ(adiak_namevalue("c:vec:int", adiak_general, NULL, "{%d}", v_ints, 3), 0);
     EXPECT_EQ(adiak_namevalue("c:vec:i32", adiak_general, NULL, "{%i32}", v_ints, 3), 0);
-    EXPECT_EQ(adiak_namevalue("c:vec:tpl", adiak_general, NULL, "{(%s,%lld,%f32)}", v_tuples, 4, 2), 0);
+    EXPECT_EQ(adiak_namevalue("c:vec:tpl", adiak_general, NULL, "{(%s,%lld)}", v_tuples, 4, 2), 0);
     EXPECT_EQ(adiak_namevalue("c:vec:u8", adiak_general, NULL, "{%u8}", v_u8s, 4), 0);
     EXPECT_EQ(adiak_namevalue("c:vec:i16", adiak_general, NULL, "{%i16}", v_i16s, 4), 0);
     EXPECT_EQ(adiak_namevalue("c:vec:f32", adiak_general, NULL, "{%f32}", v_f32s, 5), 0);
+    EXPECT_EQ(adiak_namevalue("c:vec:strings", adiak_general, NULL, "{%s}", v_strings, 3), 0);
+    clock_gettime(CLOCK_REALTIME, &ts_1);
+    const struct timespec* v_times[2] = { &ts_0, &ts_1 };
+    EXPECT_EQ(adiak_namevalue("c:range:times", adiak_general, NULL, "<%t>", v_times), 0);
 
     adiak_datatype_t* dtype = nullptr;
     adiak_value_t* val = nullptr;
@@ -340,6 +353,22 @@ TEST(AdiakApplicationAPI, C_CompoundTypes)
     EXPECT_EQ(adiak_get_subval(dtype, val, 2, &subtype, &subval), 0);
     EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_double);
     EXPECT_FLOAT_EQ(subval.v_double, 3.5);
+
+    EXPECT_EQ(adiak_get_nameval("c:vec:strings", &dtype, &val, &cat, &subcat), 0);
+    EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_list);
+    EXPECT_EQ(cat, adiak_general);
+    EXPECT_EQ(adiak_num_subvals(dtype), 3);
+    EXPECT_EQ(adiak_get_subval(dtype, val, 1, &subtype, &subval), 0);
+    EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_string);
+    EXPECT_STREQ(static_cast<char*>(subval.v_ptr), "Adiak");
+
+    EXPECT_EQ(adiak_get_nameval("c:range:times", &dtype, &val, &cat, &subcat), 0);
+    EXPECT_EQ(dtype->dtype, adiak_type_t::adiak_range);
+    EXPECT_EQ(cat, adiak_general);
+    EXPECT_EQ(adiak_num_subvals(dtype), 2);
+    EXPECT_EQ(adiak_get_subval(dtype, val, 1, &subtype, &subval), 0);
+    EXPECT_EQ(subtype->dtype, adiak_type_t::adiak_timeval);
+    EXPECT_EQ(memcmp(subval.v_ptr, &ts_1, sizeof(struct timespec)), 0);
 }
 
 
