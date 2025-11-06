@@ -1158,8 +1158,16 @@ int adiak_clean()
       record_hash = adiak_config->record_hash;
 
    memset(record_hash, 0, sizeof(local_record_hash));
-
    adiak_config->shared_record_list = NULL;
+
+   if (adiak_config->tool_list != NULL) {
+      adiak_tool_t* next_tool = NULL;
+      for (adiak_tool_t* tool = (*adiak_config->tool_list); tool != NULL; tool = next_tool) {
+         next_tool = tool->next;
+         free(tool);
+      }
+      adiak_config->tool_list = NULL;
+   }
 
    return result;
 }
