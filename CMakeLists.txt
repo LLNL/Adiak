@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 project (Adiak
          LANGUAGES CXX C
-         VERSION 0.4.1)
+         VERSION 0.5.0)
 
 set(BLT_CXX_STD "c++14" CACHE STRING "Version of C++ standard")
 
