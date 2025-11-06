@@ -101,8 +101,8 @@ int main(
    int result = adiak_flush("stdout");
    if (result != 0) printf("return: %d\n\n", result);
 
-   adiak_clean();
    adiak_fini();
+   adiak_clean();
 
 #if defined(USE_MPI)
    MPI_Finalize();

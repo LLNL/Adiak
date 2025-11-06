@@ -81,9 +81,8 @@ int main(
    dowork(start);
    dowork(start);
 
-   adiak_clean();
-
    adiak_fini();
+   adiak_clean();
 
 #if defined(USE_MPI)
    MPI_Finalize();
